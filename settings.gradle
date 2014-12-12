@@ -1,2 +1,8 @@
-rootProject.name = 'nextop-proxy'
+rootProject.name = 'nextop-service'
+
+include 'hyperlord'
+
+include 'overlord'
+
+include 'edge'
 

@@ -1,36 +1,143 @@
-nextop-proxy
-============
+Nextop Service
 
-The proxy accepts incoming requests on ports 80 (HTTP1.1, HTTP/2) and port 180 (NXT). Incoming requests are either proxied or routed on NXT connections. The decision of proxy versus route is a state machine depending on the configuration, current receivers, and error codes of the proxied request.
 
-Clients that auth establish a NXT connection. The NXT connection is logically to the host $accesskey.nextop.io. The NXT connection enables:
-- use sync logic for sending
-- receive arbitrary paths (un-authed clients can still receive on message IDs that they send)
-- cancel, complete, ack, nack
+Principles
+==========
 
-The proxy server accepts authentication over HTTP connections via the parameters ?access-key=X&grant-key=Y+Z
+- Distributed with single masters (hyperlord, overlord)
+- One hyperlord
+- One overlord per access key
+- Billing and metrics are done per access key
+- Cloud agnostic: masters run in a single data center, but edges are distributed across data centers
+- All edge sessions are double-encrypted. Each edge session has a unique double-encryption keypair. (data is wrapped in the session keypair then in the nextop keypair)
 
-The proxy is configured via a RESTful API. This must be done on the NXT connection with the nextop-admin access key and grant key. Typically the web console acts as the bridge between a user and nextop-admin, handling the authentication and usability issues.
-- PUT https://$accesskey.nextop.io?grant-key=admin
-- DELETE https://$accesskey.nextop.io
-- PUT https://$accesskey.nextop.io/grant/$grantkey
-- POST https://$accesskey.nextop.io/grant/$grantkey?perm=X
-- DELETE https://$accesskey.nextop.io/grant/$grantkey
-- GET https://$accesskey.nextop.io/metrics
+Topology
+========
 
-Each access key can be configured via a RESTful API. GET returns all keys in a JSON object; POST accepts a JSON object with just keys of the values to be updates.
-- GET https://$accesskey.nextop.io/config
-- POST https://$accesskey.nextop.io/config
+- Seperate domains per access key ($access-key.nextop.io). Overlord and edge instances per domain.
+- DNS for overlords is managed by the hyperlord (not a DNS server). For communication to an overlord, use the authority provided by the hyperlord. On HTTP, pass the correct Host header.
+- Web and hyperlord hosted in AWS
+- Hyperlord is reachable only from AWS subnet
+- Overlords are established by the hyperlord. A NXT connection to the overlord is used to control the overlord (hyperlord reaches out)
+
+Edge Organization
+=================
+
+Currently the overload is the only edge. Eventually the overlord will manage multiple edges. The overlord collaborates with the edges using a simple protocol.
+
+- Move session. Seamlessly moves a session from one edge to another. The two edges communicate with each other to orchestrate the move.
+- Shutdown. Directs the edge to shutdown when its last session completes.
+
+NXT connections directly to the edge create sessions. NXT has a move message that tells the client to connect to a different edge (and re-send all unacked messages).
+
+
+Interfaces
+==========
+
+## HTTP 1.1/2
+
+- Only the hyperlord and overlord accept HTTP in.
+- Authentication over HTTP connections via the parameter grant-key=$grant-key . Use + to apply multiple grant keys.
+
+## NXT
+
+- nextop-client speaks NXT
+
+## Benefits of NXT over HTTP
+
+- Use sync logic for sending
+- Double-encryption
+- Rx: Subscribe to arbitrary paths (un-authed clients can still receive on message IDs that they send)
+- Rx: cancel, complete
+- Reliability: ack, nack
+
+Proxy
+=====
+
+Outbound connections are done via HTTP 1.1/2 .
+
+Configuration and Metric API
+============================
+
+The web console and email system will use these. 
+
+API methods are idempotent.
+
+## Hyperlord
+
+Because the hyperlord is reachable only on the AWS subnet, hyperlord API methods do not require grant keys.
+
+### PUT https://hyperlord.nextop.io/$access-key?set-admin-grant-key=$admin-grant-key
+
+Create an access key and assign the given admin grant key to it. This call blocks until the overlord is active. 
+
+Returns the overlord authority.
+
+### DELETE https://hyperlord.nextop.io/$access-key
+
+Deletes the access key. This sends an email to ops, who has to manually click a link to confirm the deletion. Clicking the link is a hard shutdown. 
+
+The web console should be a layer above this. It should go through an email confirmation process with the account owner, which will then cascade into a hyperlord delete.
+
+### GET https://hyperlord.nextop.io/$access-key/overlord
+
+Replaces DNS for host "$access-key.nextop.io". 
+
+Returns the overlord authority.
+
+
+## Overlord
+
+
+### PUT https://$access-key.nextop.io/grant-key/$grant-key?$permission-name=$permission-value
+
+Requires admin grant key.
+
+Create a grant key. Supply one or more permission names.
+
+
+### POST https://$access-key.nextop.io/grant-key/$grant-key?$permission-name=$permission-value
+
+Requires admin grant key.
+
+Sets the permissions for the grant key. Supply one or more permission names. 
+
+
+### DELETE https://$access-key.nextop.io/grant-key/$grant-key
+
+Requires admin grant key.
+
+Revoke a grant key.
+
+
+### GET https://$access-key.nextop.io/metrics
+
+Requires monitor grant key.
+
+Returns a JSON object with a snapshot of metrics.
+
+
+### GET https://$access-key.nextop.io/config
+
+Returns a JSON object with all keys filled.
+
+
+### POST https://$access-key.nextop.io/config
+
+Accepts a JSON object with only the keys to update filled with the new values.
 
 
 Grant Key Permissions
 =====================
+
 (replace camel case with - when used in URI params)
 
-admin (bool)
-send (bool)
-sendConditional (strings)  [cookie name to use as a condition, URI to pass cookie value to to verify (should set cache headers on reply)]
-receiveMask (bool)
+- admin (bool)
+- monitor (bool)
+- send (bool)
+- subscribe (bool)
+
+
 
 
 
