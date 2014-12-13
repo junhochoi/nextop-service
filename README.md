@@ -10,6 +10,7 @@ Principles
 - Billing and metrics are done per access key
 - Cloud agnostic: masters run in a single data center, but edges are distributed across data centers
 - All edge sessions are double-encrypted. Each edge session has a unique double-encryption keypair. (data is wrapped in the session keypair then in the nextop keypair)
+- All IDs, access keys, grant keys are 256-bit UUIDs. The web layer ensures uniqueness of access keys to a single account with a transactional DB. The hyperlord ensures uniqueness of access keys to overlord but cannot ensure that multiple accounts aren't sharing the same access key.
 
 Topology
 ========
@@ -20,10 +21,13 @@ Topology
 - Hyperlord is reachable only from AWS subnet
 - Overlords are established by the hyperlord. A NXT connection to the overlord is used to control the overlord (hyperlord reaches out)
 
+
 Edge Organization
 =================
 
-Currently the overload is the only edge. Eventually the overlord will manage multiple edges. The overlord collaborates with the edges using a simple protocol.
+Currently the overload is the only edge. 
+
+Eventually the overlord will manage multiple edges across multiple clouds. The overlord collaborates with the edges using a simple protocol.
 
 - Move session. Seamlessly moves a session from one edge to another. The two edges communicate with each other to orchestrate the move.
 - Shutdown. Directs the edge to shutdown when its last session completes.
@@ -67,9 +71,9 @@ API methods are idempotent.
 
 Because the hyperlord is reachable only on the AWS subnet, hyperlord API methods do not require grant keys.
 
-### PUT https://hyperlord.nextop.io/$access-key?set-admin-grant-key=$admin-grant-key
+### PUT https://hyperlord.nextop.io/$access-key?set-root-grant-key=$root-grant-key
 
-Create an access key and assign the given admin grant key to it. This call blocks until the overlord is active. 
+Create an access key and assign the given admin grant key to it. This call blocks until the overlord is active. If the overlord already exists with a different root grant key, signals an error.
 
 Returns the overlord authority.
 
@@ -93,7 +97,7 @@ Returns the overlord authority.
 
 Requires admin grant key.
 
-Create a grant key. Supply one or more permission names.
+Create a grant key. Supply one or more permission names. If the grant key already exists with different permissions, signals an error.
 
 
 ### POST https://$access-key.nextop.io/grant-key/$grant-key?$permission-name=$permission-value
