@@ -83,7 +83,9 @@ Deletes the access key. This sends an email to ops, who has to manually click a 
 
 The web console should be a layer above this. It should go through an email confirmation process with the account owner, which will then cascade into a hyperlord delete.
 
-### GET https://hyperlord.nextop.io/$access-key/overlord
+## Hyperlord-DNS
+
+### GET https://dns.nextop.io/$access-key/overlord
 
 Replaces DNS for host "$access-key.nextop.io". 
 
