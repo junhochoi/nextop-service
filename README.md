@@ -85,12 +85,19 @@ The web console should be a layer above this. It should go through an email conf
 
 ## DNS
 
-### GET https://dns.nextop.io/overlord/$access-key
+### GET https://dns.nextop.io/$access-key/overlord
+
+Requires admin grant key.
 
 Replaces DNS for host "$access-key.nextop.io".
 
-Returns the overlord authority.
+Returns overlord authorities, semicolon separated. Overlords can be used interchangeably.
 
+### GET https://dns.nextop.io/$access-key/edge
+
+Client access points for "$access-key.nextop.io".
+
+Returns edge authorities, semicolon separated. Edges can be used interchangeably.
 
 ## Overlord
 

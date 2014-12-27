@@ -6,3 +6,5 @@ include 'overlord'
 
 include 'edge'
 
+include 'dns'
+
