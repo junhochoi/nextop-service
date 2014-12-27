@@ -2,7 +2,7 @@
 -- store 256-bit UUIDs as hex strings CHAR(64)
 
 
--- OVERLORD
+-- Overlord
 -- this stores assigned and unassigned overlord authorities
 -- e.g. scale out of the capacity of the system adds entries here
 CREATE TABLE Overlord (public_host VARCHAR(32) NOT NULL, 
