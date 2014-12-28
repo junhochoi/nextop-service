@@ -8,6 +8,8 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/common" />
+            <option value="$PROJECT_DIR$/dns" />
             <option value="$PROJECT_DIR$/edge" />
             <option value="$PROJECT_DIR$/hyperlord" />
             <option value="$PROJECT_DIR$/overlord" />

@@ -93,11 +93,29 @@ Replaces DNS for host "$access-key.nextop.io".
 
 Returns overlord authorities, semicolon separated. Overlords can be used interchangeably.
 
+### POST https://dns.nextop.io/$access-key/overlord
+
+Requires admin grant key.
+
+Flush overlord authorities in caches (CDN, etc.).
+
 ### GET https://dns.nextop.io/$access-key/edge
 
 Client access points for "$access-key.nextop.io".
 
 Returns edge authorities, semicolon separated. Edges can be used interchangeably.
+
+### POST https://dns.nextop.io/$access-key/edge
+
+Requires admin grant key.
+
+Flush edge authorities in caches (CDN, etc.).
+
+### POST https://dns.nextop.io/$access-key
+
+Requires admin grant key.
+
+Flush permissions for "$access-key.nextop.io".
 
 ## Overlord
 
