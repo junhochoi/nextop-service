@@ -3,13 +3,12 @@ package io.nextop.service.dns;
 
 import com.google.gson.JsonObject;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
-import io.nextop.service.ConfigWatcher;
+import io.nextop.rx.util.ConfigWatcher;
 import io.nextop.service.NxId;
 import io.nextop.service.Permission;
 import io.nextop.service.ServiceData;
@@ -21,8 +20,7 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.*;
@@ -42,32 +40,66 @@ public class NxDns {
 
     NxDns(String configFile) {
         configWatcher = new ConfigWatcher(configFile);
-        sd = new ServiceData(dataScheduler, configWatcher);
+        serviceData = new ServiceData(dataScheduler, configWatcher);
     }
 
 
     public void start()  {
         if (null == serverSubscription) {
-            serverSubscription = configWatcher.subscribe({
-                    // FIXME previous server
+            serverSubscription = configWatcher.subscribe(new Observer<JsonObject>() {
+                @Nullable EventLoopGroup bossGroup = null;
+                @Nullable EventLoopGroup workerGroup = null;
+                @Nullable ChannelFuture channelf = null;
 
-                    (JsonObject config) -> {
-                        EventLoopGroup bossGroup = new NioEventLoopGroup();
-                        EventLoopGroup workerGroup = new NioEventLoopGroup();
-                        try {
-                            ServerBootstrap b = new ServerBootstrap();
-                            b.option(ChannelOption.SO_BACKLOG, 1024);
-                            b.group(bossGroup, workerGroup)
-                                    .channel(NioServerSocketChannel.class)
-                                    .childHandler(new HttpServerInitializer(config));
 
-                            Channel ch = b.bind(port).sync().channel();
-                            ch.closeFuture().sync();
-                        } finally {
-                            bossGroup.shutdownGracefully();
-                            workerGroup.shutdownGracefully();
-                        }
+                @Override
+                public void onNext(JsonObject configObject) {
+                    close();
+                    assert null == bossGroup;
+                    assert null == workerGroup;
+                    assert null == channelf;
+
+                    int port = configObject.get("httpPort").getAsInt();
+
+                    bossGroup = new NioEventLoopGroup();
+                    workerGroup = new NioEventLoopGroup();
+                    try {
+                        ServerBootstrap b = new ServerBootstrap();
+                        b.option(ChannelOption.SO_BACKLOG, 1024);
+                        b.group(bossGroup, workerGroup)
+                                .channel(NioServerSocketChannel.class)
+                                .childHandler(new HttpServerInitializer(configObject));
+
+                        channelf = b.bind(port);
+                    } finally {
+                        bossGroup.shutdownGracefully();
+                        workerGroup.shutdownGracefully();
                     }
+                }
+                @Override
+                public void onCompleted() {
+                    close();
+                }
+                @Override
+                public void onError(Throwable e) {
+                    close();
+                }
+
+
+                void close() {
+                    if (null != bossGroup) {
+                        bossGroup.shutdownGracefully();
+                        bossGroup = null;
+                    }
+                    if (null != workerGroup) {
+                        workerGroup.shutdownGracefully();
+                        workerGroup = null;
+                    }
+                    if (null != channelf) {
+                        channelf.addListener(ChannelFutureListener.CLOSE);
+                        channelf = null;
+                    }
+                }
             });
         }
     }
@@ -75,13 +107,14 @@ public class NxDns {
     public void stop() {
         if (null != serverSubscription) {
             // FIXME this should call close on the server
+            // FIXME test
             serverSubscription.unsubscribe();
             serverSubscription = null;
         }
     }
 
 
-    /////// DNS ///////
+    /////// ROUTES ///////
 
     private Observable<HttpResponse> route(HttpMethod method, String path, Map<String, List<String>> parameters) {
         String[] segments = path.split("/");
@@ -127,7 +160,7 @@ public class NxDns {
     private Observable<HttpResponse> getOverlords(NxId accessKey, Iterable<NxId> grantKeys) {
         return serviceData.requirePermissions(serviceData.justOverlords(accessKey, true), accessKey, grantKeys,
                 Permission.admin.on()).map(authorities -> {
-                    String joinedAuthorities = authorities.map(authority -> authority.toString()).join(";");
+                    String joinedAuthorityStrings = authorities.stream().map(authority -> authority.toString()).collect(Collectors.joining(";"));
                     // FIXME HTTP response
                 });
     }

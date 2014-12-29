@@ -4,8 +4,6 @@ include 'hyperlord'
 
 include 'overlord'
 
-include 'edge'
-
 include 'dns'
 
 include 'common'
