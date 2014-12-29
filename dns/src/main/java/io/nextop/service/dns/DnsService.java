@@ -1,8 +1,10 @@
 package io.nextop.service.dns;
 
 
+import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -11,15 +13,19 @@ import io.netty.handler.codec.http.*;
 import io.nextop.rx.util.ConfigWatcher;
 import io.nextop.service.NxId;
 import io.nextop.service.Permission;
-import io.nextop.service.ServiceData;
+import io.nextop.service.ServiceModel;
 import rx.Observable;
 import rx.Observer;
+import rx.Scheduler;
 import rx.Subscription;
+import rx.schedulers.Schedulers;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
@@ -28,25 +34,33 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.*;
 
 
-public class NxDns {
-    // FIXME exector services for server and data
+public class DnsService {
+    private final Scheduler dnsScheduler;
+    private final Scheduler modelScheduler;
 
     private final ConfigWatcher configWatcher;
-    private final ServiceData serviceData;
+    private final ServiceModel serviceModel;
 
     @Nullable
     private Subscription serverSubscription = null;
 
 
-    NxDns(String configFile) {
-        configWatcher = new ConfigWatcher(configFile);
-        serviceData = new ServiceData(dataScheduler, configWatcher);
+    DnsService(String ... configFiles) {
+        dnsScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
+            new Thread(r, "DNSService Worker")
+        ));
+        modelScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
+                        new Thread(r, "ServiceModel Worker")
+        ));
+
+        configWatcher = new ConfigWatcher(dnsScheduler, configFiles);
+        serviceModel = new ServiceModel(modelScheduler, configWatcher.getMergedObservable());
     }
 
 
     public void start()  {
         if (null == serverSubscription) {
-            serverSubscription = configWatcher.subscribe(new Observer<JsonObject>() {
+            serverSubscription = configWatcher.getMergedObservable().subscribe(new Observer<JsonObject>() {
                 @Nullable EventLoopGroup bossGroup = null;
                 @Nullable EventLoopGroup workerGroup = null;
                 @Nullable ChannelFuture channelf = null;
@@ -132,7 +146,7 @@ public class NxDns {
             return errorRoute(method, path, parameters);
         }
         try {
-            grantKeys = parameters.getOrDefault("grant-key", Collections.<String>emptyList()).map(grantKeyString -> NxId.valueOf(grantKeyString));
+            grantKeys = parameters.getOrDefault("grant-key", Collections.<String>emptyList()).stream().map((String grantKeyString) -> NxId.valueOf(grantKeyString)).collect(Collectors.toList());
         } catch (IllegalArgumentException e) {
             return errorRoute(method, path, parameters);
         }
@@ -153,35 +167,41 @@ public class NxDns {
         }
     }
     private Observable<HttpResponse> errorRoute(HttpMethod method, String path, Map<String, List<String>> parameters) {
-        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST));
     }
 
 
-    private Observable<HttpResponse> getOverlords(NxId accessKey, Iterable<NxId> grantKeys) {
-        return serviceData.requirePermissions(serviceData.justOverlords(accessKey, true), accessKey, grantKeys,
+    private Observable<HttpResponse> getOverlords(NxId accessKey, Collection<NxId> grantKeys) {
+        return serviceModel.requirePermissions(serviceModel.justOverlords(accessKey), accessKey, grantKeys,
                 Permission.admin.on()).map(authorities -> {
                     String joinedAuthorityStrings = authorities.stream().map(authority -> authority.toString()).collect(Collectors.joining(";"));
-                    // FIXME HTTP response
+
+                    return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK,
+                            Unpooled.copiedBuffer(joinedAuthorityStrings.getBytes(Charsets.UTF_8)));
                 });
     }
 
-    private Observable<HttpResponse> postOverlords(NxId accessKey, Iterable<NxId> grantKeys) {
-        return serviceData.requirePermissions(serviceData.justDirtyOverlords(accessKey), accessKey, grantKeys,
+    private Observable<HttpResponse> postOverlords(NxId accessKey, Collection<NxId> grantKeys) {
+        return serviceModel.requirePermissions(serviceModel.justDirtyOverlords(accessKey), accessKey, grantKeys,
                 Permission.admin.on()).map(apiResponse -> {
-            // FIXME HTTP response
+
+            return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT);
         });
     }
 
-    private Observable<HttpResponse> getEdges(NxId accessKey, Iterable<NxId> grantKeys) {
-
+    private Observable<HttpResponse> getEdges(NxId accessKey, Collection<NxId> grantKeys) {
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
-    private Observable<HttpResponse> postEdges(NxId accessKey, Iterable<NxId> grantKeys) {
-
+    private Observable<HttpResponse> postEdges(NxId accessKey, Collection<NxId> grantKeys) {
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
-    private Observable<HttpResponse> postAccessKey(NxId accessKey, Iterable<NxId> grantKeys) {
-
+    private Observable<HttpResponse> postAccessKey(NxId accessKey, Collection<NxId> grantKeys) {
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
 
@@ -204,7 +224,7 @@ public class NxDns {
             // Uncomment the following line if you want HTTPS
             //SSLEngine engine = SecureChatSslContextFactory.getServerContext().createSSLEngine();
             //engine.setUseClientMode(false);
-            //p.addLast("ssl", new SslHandler(engine));
+            //permission.addLast("ssl", new SslHandler(engine));
 
             p.addLast("codec", new HttpServerCodec());
             p.addLast("handler", new HttpServerHandler());
@@ -290,9 +310,13 @@ public class NxDns {
     /////// MAIN ///////
 
     public static void main(String[] in) {
+        // FIXME logging
+        System.out.printf("DNS\n");
+
+
         // TODO opts
         String configFile = "./conf.json";
 
-        new NxDns(configFile).start();
+        new DnsService(configFile).start();
     }
 }

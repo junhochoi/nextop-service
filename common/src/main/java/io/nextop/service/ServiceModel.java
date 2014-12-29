@@ -17,9 +17,9 @@ import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** Data access for the service */
+/** Model for the service */
 // TODO verify that Observables return SafeSubscriber subscriptions
-public class ServiceData implements AutoCloseable {
+public class ServiceModel implements AutoCloseable {
     private final Scheduler scheduler;
 
     private final Observable<JsonObject> configSource;
@@ -34,11 +34,12 @@ public class ServiceData implements AutoCloseable {
     private Subscription configSubscription;
 
 
-    public ServiceData(Scheduler scheduler, Observable<JsonObject> configSource) throws Exception {
+    public ServiceModel(Scheduler scheduler, Observable<JsonObject> configSource) {
         this.scheduler = scheduler;
         this.configSource = configSource;
 
-        configSubscription = configSource.subscribe(
+        configSubscription = configSource.subscribeOn(scheduler
+        ).subscribe(
                 (JsonObject configObject) -> {
                     updateTryCount = configObject.get("service").getAsJsonObject().get("updateTryCount").getAsInt();
                 },
@@ -49,7 +50,7 @@ public class ServiceData implements AutoCloseable {
 
         // FIXME pool this
         // FIXME is there a way to implement the pool in RX? seems possible, make a util
-        connectionSource = configSource.observeOn(scheduler
+        connectionSource = configSource.subscribeOn(scheduler
         ).map((JsonObject configObject) -> {
             String host = configObject.get("mysqlHost").getAsString();
             int port = configObject.get("mysqlPort").getAsInt();;
@@ -113,9 +114,6 @@ public class ServiceData implements AutoCloseable {
         });
     }
 
-
-    /////// AutoCloseable IMPLEMENTATION ///////
-
     @Override
     public void close() throws Exception {
         configSubscription.unsubscribe();
@@ -155,7 +153,7 @@ public class ServiceData implements AutoCloseable {
                     }).collect(Collectors.toSet());
 
                     for (Permission.Mask permissionMask : permissionMasks) {
-                        if (permissionMask.mask != grantKeysPermissions.contains(permissionMask.p)) {
+                        if (permissionMask.mask != grantKeysPermissions.contains(permissionMask.permission)) {
                             return false;
                         }
                     }
@@ -356,7 +354,7 @@ public class ServiceData implements AutoCloseable {
                     try {
                         for (Permission.Mask permissionMask : permissionMasks) {
                             replaceGrantKeyPermission.setString(1, grantKey.toString());
-                            replaceGrantKeyPermission.setString(2, permissionMask.p.toString());
+                            replaceGrantKeyPermission.setString(2, permissionMask.permission.toString());
                             replaceGrantKeyPermission.setBoolean(3, permissionMask.mask);
                             replaceGrantKeyPermission.execute();
                             // continue in any case
