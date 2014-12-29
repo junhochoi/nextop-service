@@ -2,6 +2,8 @@ package io.nextop.service;
 
 import com.google.gson.JsonObject;
 import io.nextop.service.m.Overlord;
+import io.nextop.service.m.OverlordStatus;
+import io.nextop.service.util.DbUtils;
 import org.apache.http.client.utils.URIBuilder;
 import rx.Observable;
 import rx.Observer;
@@ -11,7 +13,6 @@ import rx.Subscription;
 import javax.annotation.Nullable;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -133,24 +134,24 @@ public class ServiceData implements AutoCloseable {
                         " WHERE GrantKey.access_key = ? AND GrantKey.grant_key = ? AND GrantKeyPermission.permission_value = true");
                 try {
                     Set<Permission> grantKeysPermissions = grantKeys.stream().flatMap(grantKey -> {
+                        List<Permission> grantKeyPermissions = new ArrayList<Permission>(4);
                         try {
                             selectPermissionNames.setString(1, accessKey.toString());
                             selectPermissionNames.setString(2, grantKey.toString());
                             ResultSet rs = selectPermissionNames.executeQuery();
                             try {
-                                assert "permission_name".equals(rs.getMetaData().getColumnName(1));
-
-                                List<Permission> grantKeyPermissions = new ArrayList<Permission>(4);
+                                assert DbUtils.Asserts.columnNames(rs,
+                                        "permission_name");
                                 while (rs.next()) {
                                     grantKeyPermissions.add(Permission.valueOf(rs.getString(1)));
                                 }
-                                return grantKeyPermissions.stream();
                             } finally {
                                 rs.close();
                             }
                         } catch (SQLException e) {
                             throw new ApiException(e);
                         }
+                        return grantKeyPermissions.stream();
                     }).collect(Collectors.toSet());
 
                     for (Permission.Mask permissionMask : permissionMasks) {
@@ -165,11 +166,11 @@ public class ServiceData implements AutoCloseable {
             } catch (SQLException e) {
                 throw new ApiException(e);
             }
-        }).flatMap((boolean authorized) -> {
+        }).flatMap((Boolean authorized) -> {
             if (authorized) {
                 return source;
             } else {
-                return Observable.error(new ApiException(ApiResult.notAuthorized()));
+                return Observable.error(new ApiException(ApiStatus.unauthorized()));
             }
         });
     }
@@ -177,15 +178,13 @@ public class ServiceData implements AutoCloseable {
 
     /////// API ///////
 
-
-    // all "just" API methods do an action then call onComplete or onError.
-
-
+    /** just* API methods emit one value then call onComplete */
 
 
     public Observable<Overlord> justReserveOverlord(final NxId accessKey) {
         return connectionSource.map((Connection connection) -> {
             NxId localKey = NxId.create();
+
             try {
                 for (int i = 0; i < updateTryCount; ++i) {
                     try {
@@ -209,6 +208,8 @@ public class ServiceData implements AutoCloseable {
                                 updateOverlord.close();
                             }
 
+
+                            Authority authority;
                             // find the authority
                             PreparedStatement selectAuthority = connection.prepareStatement("SELECT Overlord.public_host, Overlord.port FROM Overlord" +
                                     " WHERE access_key = ? AND local_key = ?");
@@ -218,20 +219,14 @@ public class ServiceData implements AutoCloseable {
 
                                 ResultSet rs = selectAuthority.executeQuery();
                                 try {
-                                    assert "public_host".equals(rs.getMetaData().getColumnName(1));
-                                    assert "port".equals(rs.getMetaData().getColumnName(2));
+                                    assert DbUtils.Asserts.columnNames(rs,
+                                            "public_host",
+                                            "port");
                                     if (!rs.next()) {
                                         // FIXME log this
-                                        throw ApiException().internalError();
+                                        throw ApiException.internalError();
                                     } else {
-
-
-                                        Authority authority = new Authority(rs.getString(1), rs.getInt(2));
-
-                                        Overlord overlord = new Overlord();
-                                        overlord.authority = authority;
-                                        overlord.localKey = localKey;
-                                        return overlord;
+                                        authority = new Authority(rs.getString(1), rs.getInt(2));
                                     }
                                 } finally {
                                     rs.close();
@@ -240,8 +235,13 @@ public class ServiceData implements AutoCloseable {
                                 selectAuthority.close();
                             }
 
+
+                            Overlord overlord = new Overlord();
+                            overlord.authority = authority;
+                            overlord.localKey = localKey;
+                            return overlord;
                         } finally {
-                            // implied commit here
+                            // implicitly commit
                             connection.setAutoCommit(true);
                         }
                     } catch (SQLException e) {
@@ -258,58 +258,137 @@ public class ServiceData implements AutoCloseable {
         }).take(1);
     }
 
-    public Observable<ApiResult> justReleaseOverlordAuthority(final Authority authority) {
+    public Observable<ApiStatus> justReleaseOverlordAuthority(final Authority authority) {
         return connectionSource.map((Connection connection) -> {
             // note: this does not delete from the status since it's easier to manage that synchronously with the status checks
+            try {
+                PreparedStatement selectLocalKey = connection.prepareStatement("UPDATE Overlord" +
+                        " SET access_key = NULL, local_key = NULL" +
+                        " WHERE public_host = ? AND Overlord.port = ?");
+                try {
+                    selectLocalKey.setString(1, authority.host);
+                    selectLocalKey.setInt(2, authority.port);
 
+                    int c = selectLocalKey.executeUpdate();
+                    assert c <= 1;
+                    // continue whether the authority was reserved (1 == c) or not (0 == c)
+                } finally {
+                    selectLocalKey.close();
+                }
+            } catch (SQLException e) {
+                throw new ApiException(e);
+            }
 
-
-            PreparedStatement selectLocalKey = connection.prepareStatement("UPDATE Overlord" +
-                    " SET access_key = NULL, local_key = NULL" +
-                    " WHERE public_host = ? AND Overlord.port = ?");
-
-            selectLocalKey.setString(1, authority.host);
-            selectLocalKey.setInt(2, authority.port);
-
-
-            int c = selectLocalKey.executeUpdate();
-            assert c <= 1;
-            // succeed whether the authority was reserved (1 == c) or not (0 == c)
-            return ApiResult.success();
+            return ApiStatus.ok();
         }).take(1);
     }
 
     // FIXME overlord status
     // FIXME overlord status is used to maintain reservations
 
+    public Observable<Collection<Overlord>> justOverlords(final NxId accessKey) {
+        return connectionSource.map((Connection connection) -> {
+            Collection<Overlord> overlords = new ArrayList<Overlord>(16);
+            try {
+                PreparedStatement selectOverlord = connection.prepareStatement("SELECT Overlord.public_host, Overlord.port, Overlord.local_key," +
+                        " OverlordStatus.git_commit_hash, OverlordStatus.deep_md5, OverlordStatus.monitor_up FROM Overlord" +
+                        " LEFT JOIN OverlordStatus ON Overlord.local_key = OverlordStatus.local_key" +
+                        " WHERE Overlord.access_key = ?");
+                try {
+                    selectOverlord.setString(1, accessKey.toString());
 
-    public Observable<Collection<Overlord>> justOverlords(NxId accessKey) {
+                    ResultSet rs = selectOverlord.executeQuery();
+                    try {
+                        assert DbUtils.Asserts.columnNames(rs,
+                                "public_host",
+                                "port",
+                                "local_key",
+                                "git_commit_hash",
+                                "deep_md5",
+                                "monitor_up");
+                        while (rs.next()) {
+                            Overlord overlord = new Overlord();
+                            overlord.authority = new Authority(rs.getString(1), rs.getInt(2));
+                            overlord.localKey = NxId.valueOf(rs.getString(3));
 
-        // FIXME read full overlord (including status)
+                            OverlordStatus status = new OverlordStatus();
+                            status.gitCommitHash = rs.getString(4);
+                            status.deepMd5 = rs.getString(5);
+                            status.monitorUp = rs.getBoolean(6);
+                            overlord.status = status;
+
+                            overlords.add(overlord);
+                        }
+                    } finally {
+                        rs.close();
+                    }
+                } finally {
+                    selectOverlord.close();
+                }
+            } catch (SQLException e) {
+                throw new ApiException(e);
+            }
+
+            return overlords;
+        }).take(1);
     }
-
-
 
     // omitted permissions are not changed
-    public Observable<ApiResult> justGrant(NxId accessKey, NxId grantKey, Permission.Mask ... permissionMasks) {
+    public Observable<ApiStatus> justGrant(NxId accessKey, NxId grantKey, Permission.Mask ... permissionMasks) {
+        return connectionSource.map((Connection connection) -> {
+            try {
+                connection.setAutoCommit(false);
+                try {
+                    PreparedStatement insertGrantKey = connection.prepareStatement("INSERT IGNORE INTO GrantKey" +
+                            " (access_key, grant_key) VALUES (?, ?)");
+                    try {
+                        insertGrantKey.setString(1, accessKey.toString());
+                        insertGrantKey.setString(2, grantKey.toString());
 
+                        insertGrantKey.execute();
+                        // continue in any case
+                    } finally {
+                        insertGrantKey.close();
+                    }
+
+                    PreparedStatement replaceGrantKeyPermission = connection.prepareStatement("REPLACE INTO GrantKeyPermission" +
+                            " (grant_key, permission_name, permission_value) VALUES (?, ?, ?)");
+                    try {
+                        for (Permission.Mask permissionMask : permissionMasks) {
+                            replaceGrantKeyPermission.setString(1, grantKey.toString());
+                            replaceGrantKeyPermission.setString(2, permissionMask.p.toString());
+                            replaceGrantKeyPermission.setBoolean(3, permissionMask.mask);
+                            replaceGrantKeyPermission.execute();
+                            // continue in any case
+                        }
+                    } finally {
+                        replaceGrantKeyPermission.close();
+                    }
+                } finally {
+                    // implicitly commit
+                    connection.setAutoCommit(true);
+                }
+
+                return ApiStatus.ok();
+            } catch (SQLException e) {
+                throw new ApiException(e);
+            }
+        });
     }
 
 
+    public Observable<ApiStatus> justDirtyPermissions(NxId accessKey) {
+        // TODO currently no caches
+        // TODO dirty shared cache
 
-
-
-
-
-    public Observable<ApiResult> justDirtyPermissions(NxId accessKey) {
-        // FIXME dirty shared cache
+        return Observable.just(ApiStatus.ok());
     }
 
-    public Observable<ApiResult> justDirtyOverlords(NxId accessKey) {
-        //
-        // FIXME dirty shared cache
-
-        // FIXME update CloudFront
+    public Observable<ApiStatus> justDirtyOverlords(NxId accessKey) {
+        // TODO currently no caches
+        // TODO dirty shared cache
+        // TODO update CloudFront
+        return Observable.just(ApiStatus.ok());
     }
 
 
