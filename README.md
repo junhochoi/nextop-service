@@ -67,22 +67,6 @@ The web console and email system will use these.
 
 API methods are idempotent.
 
-## Hyperlord
-
-Because the hyperlord is reachable only on the AWS subnet, hyperlord API methods do not require grant keys.
-
-### PUT https://hyperlord.nextop.io/$access-key?set-root-grant-key=$root-grant-key
-
-Create an access key and assign the given admin grant key to it. This call blocks until the overlord is active. If the overlord already exists with a different root grant key, signals an error.
-
-Returns the overlord authority.
-
-### DELETE https://hyperlord.nextop.io/$access-key
-
-Deletes the access key. This sends an email to ops, who has to manually click a link to confirm the deletion. Clicking the link is a hard shutdown. 
-
-The web console should be a layer above this. It should go through an email confirmation process with the account owner, which will then cascade into a hyperlord delete.
-
 ## DNS
 
 ### GET https://dns.nextop.io/$access-key/overlord
@@ -117,7 +101,27 @@ Requires admin grant key.
 
 Flush permissions for "$access-key.nextop.io".
 
-## Overlord
+
+## Hyperlord
+
+Because the hyperlord is reachable only on the AWS subnet, hyperlord API methods do not require grant keys.
+
+### PUT https://hyperlord.nextop.io/$access-key?set-root-grant-key=$root-grant-key
+
+Create an access key and assign the given admin grant key to it. This call blocks until the overlord is active. If the overlord already exists with a different root grant key, signals an error.
+
+Returns the overlord authority.
+
+### DELETE https://hyperlord.nextop.io/$access-key
+
+Deletes the access key. This sends an email to ops, who has to manually click a link to confirm the deletion. Clicking the link is a hard shutdown. 
+
+The web console should be a layer above this. It should go through an email confirmation process with the account owner, which will then cascade into a hyperlord delete.
+
+
+## Hyperlord and Overlord
+
+All modifications must go through the hyperlord. The hyperlord writes through to the overlords.
 
 
 ### PUT https://$access-key.nextop.io/grant-key/$grant-key?$permission-name=$permission-value
@@ -140,6 +144,8 @@ Requires admin grant key.
 
 Revoke a grant key.
 
+
+## Overlord
 
 ### GET https://$access-key.nextop.io/metrics
 

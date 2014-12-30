@@ -40,31 +40,101 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="ServiceAdminModel.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/service/ServiceAdminModel.java">
+      <file leaf-file-name="DnsService.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/dns/src/main/java/io/nextop/service/dns/DnsService.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="1170" max-vertical-offset="6300">
-              <caret line="95" column="0" selection-start-line="95" selection-start-column="0" selection-end-line="95" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="2610">
+              <caret line="54" column="0" selection-start-line="54" selection-start-column="0" selection-end-line="54" selection-end-column="0" />
               <folding>
-                <element signature="imports" expanded="true" />
-                <marker date="1419907469000" expanded="true" signature="4720:5020" placeholder="SELECT Grant..GrantKey..." />
-                <marker date="1419907469000" expanded="true" signature="7814:7978" placeholder="UPDATE Overl..." />
-                <marker date="1419907469000" expanded="true" signature="8881:9017" placeholder="SELECT Overl..Overlord..." />
-                <marker date="1419907469000" expanded="true" signature="11301:11458" placeholder="UPDATE Overl..." />
-                <marker date="1419907469000" expanded="true" signature="12572:12923" placeholder="SELECT Overl..Overlord..." />
+                <element signature="e#1910#1918#0" expanded="true" />
+                <element signature="e#5068#5069#0" expanded="true" />
+                <element signature="e#5101#5102#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="DnsService.java" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/dns/src/main/java/io/nextop/service/dns/DnsService.java">
+      <file leaf-file-name="HttpResponse.java" pinned="false" current-in-tab="false">
+        <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.netty/netty-all/5.0.0.Alpha1/adb303494ab636146d9835a34d293ca853622e00/netty-all-5.0.0.Alpha1-sources.jar!/io/netty/handler/codec/http/HttpResponse.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.6279373" vertical-offset="3794" max-vertical-offset="6045">
-              <caret line="291" column="35" selection-start-line="291" selection-start-column="35" selection-end-line="291" selection-end-column="35" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="600">
+              <caret line="15" column="8" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="35" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="build.gradle" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/dns/build.gradle">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="765">
+              <caret line="33" column="4" selection-start-line="33" selection-start-column="4" selection-end-line="33" selection-end-column="73" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="common.iml" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/common/common.iml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0" vertical-offset="30" max-vertical-offset="510">
+              <caret line="2" column="0" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="build.gradle" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/common/build.gradle">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="405">
+              <caret line="19" column="73" selection-start-line="19" selection-start-column="73" selection-end-line="19" selection-end-column="73" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="NettyServer.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/rx/http/NettyServer.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0" vertical-offset="3259" max-vertical-offset="4035">
+              <caret line="54" column="0" selection-start-line="54" selection-start-column="0" selection-end-line="54" selection-end-column="0" />
               <folding>
                 <element signature="imports" expanded="true" />
+                <element signature="e#2793#2794#0" expanded="true" />
+                <element signature="e#2832#2833#0" expanded="true" />
+                <element signature="e#2901#2902#0" expanded="true" />
+                <element signature="e#2940#2941#0" expanded="true" />
+                <element signature="e#4462#4463#0" expanded="true" />
+                <element signature="e#4497#4498#0" expanded="true" />
+                <element signature="e#5786#5787#0" expanded="true" />
+                <element signature="e#5849#5850#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="BasicRouter.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/rx/http/BasicRouter.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0" vertical-offset="1489" max-vertical-offset="2265">
+              <caret line="77" column="37" selection-start-line="77" selection-start-column="37" selection-end-line="77" selection-end-column="37" />
+              <folding>
+                <element signature="imports" expanded="true" />
+                <element signature="e#1801#1810#0" expanded="true" />
+                <element signature="e#3852#3853#0" expanded="true" />
+                <element signature="e#3908#3909#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Router.java" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/rx/http/Router.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.13530928" vertical-offset="0" max-vertical-offset="776">
+              <caret line="12" column="0" selection-start-line="12" selection-start-column="0" selection-end-line="12" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -72,73 +142,8 @@
       <file leaf-file-name="ApiStatus.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/service/ApiStatus.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="690">
+            <state vertical-scroll-proportion="0.0" vertical-offset="315" max-vertical-offset="690">
               <caret line="35" column="23" selection-start-line="35" selection-start-column="23" selection-end-line="35" selection-end-column="23" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Subscriber.java" pinned="false" current-in-tab="false">
-        <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.reactivex/rxjava/1.0.3/da8cdcfd1abf3ed12087938760e3d75aee45163a/rxjava-1.0.3-sources.jar!/rx/Subscriber.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="191" max-vertical-offset="1935">
-              <caret line="44" column="0" selection-start-line="44" selection-start-column="0" selection-end-line="44" selection-end-column="0" />
-              <folding>
-                <element signature="n#!!doc" expanded="false" />
-                <element signature="e#2255#2256#0" expanded="false" />
-                <element signature="e#2280#2281#0" expanded="false" />
-                <element signature="e#2333#2334#0" expanded="false" />
-                <element signature="e#2365#2366#0" expanded="false" />
-                <element signature="e#2650#2651#0" expanded="false" />
-                <element signature="e#2692#2693#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="SubscriptionList.java" pinned="false" current-in-tab="false">
-        <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.reactivex/rxjava/1.0.3/da8cdcfd1abf3ed12087938760e3d75aee45163a/rxjava-1.0.3-sources.jar!/rx/internal/util/SubscriptionList.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="240" max-vertical-offset="1575">
-              <caret line="37" column="0" selection-start-line="37" selection-start-column="0" selection-end-line="37" selection-end-column="0" />
-              <folding>
-                <element signature="n#!!doc" expanded="false" />
-                <element signature="imports" expanded="false" />
-                <element signature="e#1506#1507#0" expanded="false" />
-                <element signature="e#1541#1542#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="HyperlordMain.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/hyperlord/src/main/java/HyperlordMain.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="626" max-vertical-offset="1500">
-              <caret line="75" column="16" selection-start-line="75" selection-start-column="16" selection-end-line="76" selection-end-column="91" />
-              <folding>
-                <element signature="imports" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="NxId.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/service/NxId.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="90" max-vertical-offset="1620">
-              <caret line="10" column="19" selection-start-line="10" selection-start-column="19" selection-end-line="10" selection-end-column="19" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="conf.json" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/dns/src/resources/conf.json">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="30" max-vertical-offset="255">
-              <caret line="2" column="13" selection-start-line="2" selection-start-column="3" selection-end-line="2" selection-end-column="13" />
               <folding />
             </state>
           </provider>
@@ -147,20 +152,11 @@
       <file leaf-file-name="NxProxy.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/overlord/src/main/java/io/nextop/proxy/NxProxy.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="165">
+            <state vertical-scroll-proportion="0.0" vertical-offset="30" max-vertical-offset="165">
               <caret line="2" column="13" selection-start-line="2" selection-start-column="13" selection-end-line="2" selection-end-column="13" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ConfigWatcher.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/rx/util/ConfigWatcher.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="379" max-vertical-offset="1905">
-              <caret line="58" column="25" selection-start-line="58" selection-start-column="25" selection-end-line="58" selection-end-column="25" />
               <folding>
-                <element signature="imports" expanded="true" />
+                <element signature="e#90#91#0" expanded="false" />
+                <element signature="e#141#142#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -756,7 +752,7 @@
     </option>
     <option name="modificationStamps">
       <map>
-        <entry key="$PROJECT_DIR$" value="8517314313000" />
+        <entry key="$PROJECT_DIR$" value="8515224399000" />
       </map>
     </option>
     <option name="projectBuildClasspath">
@@ -788,6 +784,8 @@
                             <option value="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.code.findbugs/jsr305/3.0.0/5871fb60dc68d67da54a663c3fd636a10a532948/jsr305-3.0.0.jar" />
                             <option value="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/18.0/ad97fe8faaf01a3d3faacecd58e8fa6e78a973ca/guava-18.0-sources.jar" />
                             <option value="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/18.0/cce0823396aa693798f8882e64213b1772032b09/guava-18.0.jar" />
+                            <option value="$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.netty/netty-all/5.0.0.Alpha1/adb303494ab636146d9835a34d293ca853622e00/netty-all-5.0.0.Alpha1-sources.jar" />
+                            <option value="$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.netty/netty-all/5.0.0.Alpha1/2082ec32e289cd196732ffb32f6b634ff739cbd7/netty-all-5.0.0.Alpha1.jar" />
                             <option value="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents/httpcore/4.3.3/1b0aa62a6a91e9fa00c16f0a4a2c874804ed3b1e/httpcore-4.3.3-sources.jar" />
                             <option value="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents/httpcore/4.3.3/f91b7a4aadc5cf486df6e4634748d7dd7a73f06d/httpcore-4.3.3.jar" />
                             <option value="$USER_HOME$/.gradle/caches/modules-2/files-2.1/commons-logging/commons-logging/1.1.3/28bb0405fddaf04f15058fbfbe01fe2780d7d3b6/commons-logging-1.1.3-sources.jar" />
@@ -981,7 +979,6 @@
         <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/service/ServiceData.java" />
         <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/service/Permission.java" />
         <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/service/ServiceModel.java" />
-        <option value="$PROJECT_DIR$/common/build.gradle" />
         <option value="$PROJECT_DIR$/dns/src/main/java/io/nextop/service/dns/conf.json" />
         <option value="$PROJECT_DIR$/dns/build.gradle" />
         <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/service/log/ServiceLog.java" />
@@ -989,6 +986,11 @@
         <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/service/ServiceAdminModel.java" />
         <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/rx/util/ConfigWatcher.java" />
         <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/service/ApiStatus.java" />
+        <option value="$PROJECT_DIR$/common/build.gradle" />
+        <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/rx/http/Routers.java" />
+        <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/rx/http/Router.java" />
+        <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/rx/http/BasicRouter.java" />
+        <option value="$PROJECT_DIR$/common/src/main/java/io/nextop/rx/http/NettyServer.java" />
         <option value="$PROJECT_DIR$/dns/src/main/java/io/nextop/service/dns/DnsService.java" />
       </list>
     </option>
@@ -998,8 +1000,8 @@
   </component>
   <component name="ProjectFrameBounds">
     <option name="y" value="23" />
-    <option name="width" value="2560" />
-    <option name="height" value="1413" />
+    <option name="width" value="1440" />
+    <option name="height" value="873" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
@@ -1326,46 +1328,6 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="Gradle: commons-cli:commons-cli:1.2" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.NamedLibraryElementNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="commons-cli-1.2.jar" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="cli" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="nextop-service" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="External Libraries" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="Gradle: commons-cli:commons-cli:1.2" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.NamedLibraryElementNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="commons-cli-1.2.jar" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="nextop-service" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="External Libraries" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
               <option name="myItemId" value="&lt; 1.8 &gt;" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.NamedLibraryElementNode" />
             </PATH_ELEMENT>
@@ -1539,6 +1501,24 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="overlord" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="nextop-service" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="nextop-service" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="overlord" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -1870,7 +1850,45 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="util" />
+              <option name="myItemId" value="rx" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="nextop-service" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="nextop-service" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="common" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="main" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="java" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="nextop" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="rx" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="http" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -1988,9 +2006,6 @@
       <method />
     </configuration>
     <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug">
-      <method />
-    </configuration>
-    <configuration default="true" type="NodeJSConfigurationType" factoryName="Node.js" working-dir="">
       <method />
     </configuration>
     <configuration default="true" type="TestNG" factoryName="TestNG">
@@ -2264,14 +2279,16 @@
       <workItem from="1419840696229" duration="2998000" />
       <workItem from="1419888011301" duration="16939000" />
       <workItem from="1419908304081" duration="1948000" />
+      <workItem from="1419973450825" duration="99000" />
+      <workItem from="1419973987008" duration="6558000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="57066000" />
+    <option name="totallyTimeSpent" value="63723000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="2560" height="1413" extended-state="6" />
+    <frame x="0" y="23" width="1440" height="873" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="Palette&#9;" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -2282,25 +2299,25 @@
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.39955357" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="IDEtalk Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="IDEtalk" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3283582" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.20390625" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.20347223" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.33242187" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32886904" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.33194444" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32886904" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32886904" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.39955357" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3283582" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -2329,13 +2346,13 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/dns/src/main/java/io/nextop/service/dns/DnsService.java</url>
-          <line>202</line>
+          <line>160</line>
           <properties />
           <option name="timeStamp" value="9" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/dns/src/main/java/io/nextop/service/dns/DnsService.java</url>
-          <line>315</line>
+          <line>196</line>
           <properties />
           <option name="timeStamp" value="10" />
         </line-breakpoint>
@@ -2352,13 +2369,6 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/overlord/src/main/java/io/nextop/proxy/NxProxy.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="30" max-vertical-offset="165">
-          <caret line="2" column="13" selection-start-line="2" selection-start-column="13" selection-end-line="2" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/overlord/build.gradle">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="165" max-vertical-offset="255">
@@ -2515,7 +2525,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="465">
           <caret line="6" column="19" selection-start-line="6" selection-start-column="19" selection-end-line="6" selection-end-column="19" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -2531,7 +2540,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="675">
           <caret line="2" column="19" selection-start-line="2" selection-start-column="19" selection-end-line="2" selection-end-column="19" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -2539,7 +2547,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.46391752" vertical-offset="0" max-vertical-offset="776">
           <caret line="57" column="17" selection-start-line="57" selection-start-column="17" selection-end-line="57" selection-end-column="17" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -2555,9 +2562,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="585">
           <caret line="57" column="17" selection-start-line="57" selection-start-column="17" selection-end-line="57" selection-end-column="17" />
-          <folding>
-            <element signature="e#0#1311#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -2565,7 +2569,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.09118541" vertical-offset="0" max-vertical-offset="1316">
           <caret line="22" column="17" selection-start-line="22" selection-start-column="17" selection-end-line="22" selection-end-column="17" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -2580,23 +2583,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="285">
           <caret line="4" column="13" selection-start-line="4" selection-start-column="13" selection-end-line="4" selection-end-column="13" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/common/build.gradle">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="390">
-          <caret line="7" column="4" selection-start-line="7" selection-start-column="4" selection-end-line="9" selection-end-column="5" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/commons-cli/commons-cli/1.2/6c5459816530a1962ac18cd315cc775b1b384329/commons-cli-1.2-sources.jar!/org/apache/commons/cli/CommandLineParser.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.31914893" vertical-offset="0" max-vertical-offset="1316">
-          <caret line="43" column="18" selection-start-line="43" selection-start-column="18" selection-end-line="43" selection-end-column="18" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -2619,26 +2605,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/dns/build.gradle">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="765">
-          <caret line="36" column="62" selection-start-line="36" selection-start-column="62" selection-end-line="36" selection-end-column="62" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.netty/netty-all/5.0.0.Alpha1/adb303494ab636146d9835a34d293ca853622e00/netty-all-5.0.0.Alpha1-sources.jar!/io/netty/channel/ChannelFuture.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.806231" vertical-offset="1429" max-vertical-offset="2745">
           <caret line="185" column="18" selection-start-line="185" selection-start-column="18" selection-end-line="185" selection-end-column="18" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/service/log/ServiceLog.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="732" max-vertical-offset="2460">
-          <caret line="89" column="38" selection-start-line="89" selection-start-column="38" selection-end-line="89" selection-end-column="38" />
         </state>
       </provider>
     </entry>
@@ -2666,24 +2637,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/dns/src/resources/conf.json">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="30" max-vertical-offset="255">
-          <caret line="2" column="13" selection-start-line="2" selection-start-column="3" selection-end-line="2" selection-end-column="13" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.reactivex/rxjava/1.0.3/da8cdcfd1abf3ed12087938760e3d75aee45163a/rxjava-1.0.3-sources.jar!/rx/internal/util/SubscriptionList.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1575">
           <caret line="37" column="0" selection-start-line="37" selection-start-column="0" selection-end-line="37" selection-end-column="0" />
-          <folding>
-            <element signature="n#!!doc" expanded="false" />
-            <element signature="imports" expanded="false" />
-            <element signature="e#1506#1507#0" expanded="false" />
-            <element signature="e#1541#1542#0" expanded="false" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -2708,33 +2666,18 @@
         <state vertical-scroll-proportion="0.33307752" vertical-offset="93151" max-vertical-offset="130905">
           <caret line="6489" column="31" selection-start-line="6489" selection-start-column="31" selection-end-line="6489" selection-end-column="31" />
           <folding>
-            <element signature="e#340981#340982#0" expanded="true" />
-            <element signature="e#341024#341025#0" expanded="true" />
+            <element signature="e#340981#340982#0" expanded="false" />
+            <element signature="e#341024#341025#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/rx/util/ConfigWatcher.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="379" max-vertical-offset="1905">
-          <caret line="58" column="25" selection-start-line="58" selection-start-column="25" selection-end-line="58" selection-end-column="25" />
+        <state vertical-scroll-proportion="0.0" vertical-offset="945" max-vertical-offset="1905">
+          <caret line="63" column="25" selection-start-line="63" selection-start-column="25" selection-end-line="63" selection-end-column="25" />
           <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/service/ServiceAdminModel.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="1170" max-vertical-offset="6300">
-          <caret line="95" column="0" selection-start-line="95" selection-start-column="0" selection-end-line="95" selection-end-column="0" />
-          <folding>
-            <element signature="imports" expanded="true" />
-            <marker date="1419907469000" expanded="true" signature="4720:5020" placeholder="SELECT Grant..GrantKey..." />
-            <marker date="1419907469000" expanded="true" signature="7814:7978" placeholder="UPDATE Overl..." />
-            <marker date="1419907469000" expanded="true" signature="8881:9017" placeholder="SELECT Overl..Overlord..." />
-            <marker date="1419907469000" expanded="true" signature="11301:11458" placeholder="UPDATE Overl..." />
-            <marker date="1419907469000" expanded="true" signature="12572:12923" placeholder="SELECT Overl..Overlord..." />
+            <element signature="imports" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -2753,7 +2696,10 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="165">
           <caret line="2" column="13" selection-start-line="2" selection-start-column="13" selection-end-line="2" selection-end-column="13" />
-          <folding />
+          <folding>
+            <element signature="e#90#91#0" expanded="false" />
+            <element signature="e#141#142#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -2765,13 +2711,86 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/common/common.iml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="30" max-vertical-offset="510">
+          <caret line="2" column="0" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/common/build.gradle">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="405">
+          <caret line="19" column="73" selection-start-line="19" selection-start-column="73" selection-end-line="19" selection-end-column="73" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.netty/netty-all/5.0.0.Alpha1/adb303494ab636146d9835a34d293ca853622e00/netty-all-5.0.0.Alpha1-sources.jar!/io/netty/handler/codec/http/HttpResponse.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="600">
+          <caret line="15" column="8" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="35" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dns/build.gradle">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="765">
+          <caret line="33" column="4" selection-start-line="33" selection-start-column="4" selection-end-line="33" selection-end-column="73" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/dns/src/main/java/io/nextop/service/dns/DnsService.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.6279373" vertical-offset="3794" max-vertical-offset="6045">
-          <caret line="291" column="35" selection-start-line="291" selection-start-column="35" selection-end-line="291" selection-end-column="35" />
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="2610">
+          <caret line="54" column="0" selection-start-line="54" selection-start-column="0" selection-end-line="54" selection-end-column="0" />
+          <folding>
+            <element signature="e#1910#1918#0" expanded="true" />
+            <element signature="e#5068#5069#0" expanded="true" />
+            <element signature="e#5101#5102#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/rx/http/BasicRouter.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="867" max-vertical-offset="2265">
+          <caret line="77" column="37" selection-start-line="77" selection-start-column="37" selection-end-line="77" selection-end-column="37" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#1801#1810#0" expanded="true" />
+            <element signature="e#3852#3853#0" expanded="true" />
+            <element signature="e#3908#3909#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/rx/http/NettyServer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="612" max-vertical-offset="4035">
+          <caret line="54" column="0" selection-start-line="54" selection-start-column="0" selection-end-line="54" selection-end-column="0" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#2793#2794#0" expanded="true" />
+            <element signature="e#2832#2833#0" expanded="true" />
+            <element signature="e#2901#2902#0" expanded="true" />
+            <element signature="e#2940#2941#0" expanded="true" />
+            <element signature="e#4462#4463#0" expanded="true" />
+            <element signature="e#4497#4498#0" expanded="true" />
+            <element signature="e#5786#5787#0" expanded="true" />
+            <element signature="e#5849#5850#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/common/src/main/java/io/nextop/rx/http/Router.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.13530928" vertical-offset="0" max-vertical-offset="776">
+          <caret line="12" column="0" selection-start-line="12" selection-start-column="0" selection-end-line="12" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
