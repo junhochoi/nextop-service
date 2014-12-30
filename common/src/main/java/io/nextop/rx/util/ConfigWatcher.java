@@ -16,6 +16,10 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
+
+import static io.nextop.service.log.ServiceLog.log;
 
 public final class ConfigWatcher implements AutoCloseable {
     private final Scheduler scheduler;
@@ -24,66 +28,70 @@ public final class ConfigWatcher implements AutoCloseable {
     private final int intervalMs = 1000;
 
     private final BehaviorSubject<JsonObject> mergedSubject;
-    private final Observable<JsonObject> mergedObservable;
 
 
     // INTERNAL SUBSCRIPTIONS
 
-    @Nullable
-    private Subscription pollSubscription = null;
+    private final Subscription pollSubscription;
 
 
-    public ConfigWatcher(Scheduler scheduler, String ... fileNames) {
-        this(scheduler, (File[]) Arrays.stream(fileNames).map(fileName -> new File(fileName)).toArray(n -> new File[n]));
+
+    public ConfigWatcher(Scheduler scheduler, JsonObject defaultConfigObject, String ... fileNames) {
+        this(scheduler, defaultConfigObject,
+                (File[]) Arrays.stream(fileNames).map(File::new).toArray(n -> new File[n]));
     }
 
-    public ConfigWatcher(Scheduler scheduler, File ... files) {
+    public ConfigWatcher(Scheduler scheduler, JsonObject defaultConfigObject, File ... files) {
         this.scheduler = scheduler;
         this.files = files;
 
         mergedSubject = BehaviorSubject.create();
-        mergedObservable = mergedSubject.doOnSubscribe(() -> {
-            pollSubscription = scheduler.createWorker().schedulePeriodically(new Action0() {
-                final int n = files.length;
-                final long[] lastModifiedTimes = new long[n];
-                final JsonObject[] lastConfigObjects = new JsonObject[n];
 
-                @Override
-                public void call() {
-                    boolean modified = false;
+        pollSubscription = scheduler.createWorker().schedulePeriodically(new Action0() {
+            int callCount = 0;
 
-                    for (int i = 0; i < n; ++i) {
-                        File f = files[i];
-                        if (f.exists()) {
-                            long lastModifiedTime = f.lastModified();
-                            if (lastModifiedTime != lastModifiedTimes[i]) {
+            final int n = files.length;
+            final long[] lastModifiedTimes = new long[n];
+            final JsonObject[] lastConfigObjects = new JsonObject[n];
+
+            @Override
+            public synchronized void call() {
+                log.count("config.watch");
+
+                ++callCount;
+                boolean modified = false;
+
+                for (int i = 0; i < n; ++i) {
+                    File f = files[i];
+                    if (f.exists()) {
+                        long lastModifiedTime = f.lastModified();
+                        if (lastModifiedTime != lastModifiedTimes[i]) {
+                            try {
+                                Reader r = new BufferedReader(new InputStreamReader(new FileInputStream(f), Charsets.UTF_8));
                                 try {
-                                    Reader r = new BufferedReader(new InputStreamReader(new FileInputStream(f), Charsets.UTF_8));
-                                    try {
-                                        lastConfigObjects[i] = new JsonParser().parse(r).getAsJsonObject();
-                                    } finally {
-                                        r.close();
-                                    }
-                                    lastModifiedTimes[i] = lastModifiedTime;
-                                    modified = true;
-                                } catch (IOException e) {
-                                    // FIXME log
-                                    // lave this index untouched; try again next interval
+                                    lastConfigObjects[i] = new JsonParser().parse(r).getAsJsonObject();
+                                } finally {
+                                    r.close();
                                 }
-                            }
-
-                            if (modified) {
-                                JsonObject mergedObject = new JsonObject();
-                                mergeDown(mergedObject, lastConfigObjects);
-                                mergedSubject.onNext(mergedObject);
+                                lastModifiedTimes[i] = lastModifiedTime;
+                                modified = true;
+                            } catch (IOException e) {
+                                // FIXME log
+                                // lave this index untouched; try again next interval
                             }
                         }
                     }
                 }
-            }, 0L, intervalMs, TimeUnit.MILLISECONDS);
-        }).doOnUnsubscribe(() -> {
-            pollSubscription.unsubscribe();
-        }).share();
+
+                if (modified || /* always publish the first time, even if no files exist */ 1 == callCount) {
+                    JsonObject mergedObject = new JsonObject();
+                    Stream<JsonObject> configObjects = Stream.concat(Stream.of(defaultConfigObject), Stream.of(lastConfigObjects)
+                    ).filter(object -> null != object);
+                    mergeDown(mergedObject, configObjects.toArray(n -> new JsonObject[n]));
+                    mergedSubject.onNext(mergedObject);
+                }
+            }
+        }, 0L, intervalMs, TimeUnit.MILLISECONDS);
     }
 
     @Override

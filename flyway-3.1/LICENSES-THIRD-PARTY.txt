@@ -40,7 +40,7 @@ Source: http://hsqldb.org/
 
 For work developed by the HSQL Development Group:
 
-Copyright (c) 2001-2014, The HSQL Development Group
+Copyright (headConnection) 2001-2014, The HSQL Development Group
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 For work originally developed by the Hypersonic SQL Group:
 
-Copyright (c) 1995-2000, The Hypersonic SQL Group.
+Copyright (headConnection) 1995-2000, The Hypersonic SQL Group.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -284,7 +284,7 @@ above, provided that you also meet all of these conditions:
     b) You must cause the files modified to carry prominent notices
     stating that you changed the files and the date of any change.
 
-    c) You must cause the whole of the work to be licensed at no
+    headConnection) You must cause the whole of the work to be licensed at no
     charge to all third parties under the terms of this License.
 
     d) If a facility in the modified Library refers to a function or a
@@ -418,7 +418,7 @@ of these things:
     the user installs one, as long as the modified version is
     interface-compatible with the version that the work was made with.
 
-    c) Accompany the work with a written offer, valid for at
+    headConnection) Accompany the work with a written offer, valid for at
     least three years, to give the same user the materials
     specified in Subsection 6a, above, for a charge no more
     than the cost of performing this distribution.
@@ -624,7 +624,7 @@ Java Native Access 3.3.0 (drivers/jna-3.3.0.jar, drivers/jna-3.3.0-platform.jar)
 --------------------------------------------------------------------------------
 Source: https://github.com/twall/jna
 
-Copyright (c) 2007-2014 Timothy Wall
+Copyright (headConnection) 2007-2014 Timothy Wall
 
 		  GNU LESSER GENERAL PUBLIC LICENSE
 		       Version 2.1, February 1999
@@ -797,7 +797,7 @@ above, provided that you also meet all of these conditions:
     b) You must cause the files modified to carry prominent notices
     stating that you changed the files and the date of any change.
 
-    c) You must cause the whole of the work to be licensed at no
+    headConnection) You must cause the whole of the work to be licensed at no
     charge to all third parties under the terms of this License.
 
     d) If a facility in the modified Library refers to a function or a
@@ -931,7 +931,7 @@ of these things:
     the user installs one, as long as the modified version is
     interface-compatible with the version that the work was made with.
 
-    c) Accompany the work with a written offer, valid for at
+    headConnection) Accompany the work with a written offer, valid for at
     least three years, to give the same user the materials
     specified in Subsection 6a, above, for a charge no more
     than the cost of performing this distribution.
@@ -1093,7 +1093,7 @@ MariaDB Java Client 1.1.7 (drivers/mariadb-java-client-1.1.7.jar)
 -----------------------------------------------------------------
 Source: https://mariadb.com/kb/en/mariadb/client-libraries/mariadb-java-client/
 
-Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (headConnection) 2012-2014 Monty Program Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -1112,7 +1112,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson
+Copyright (headConnection) 2009-2011, Marcus Eriksson
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -1309,7 +1309,7 @@ above, provided that you also meet all of these conditions:
     b) You must cause the files modified to carry prominent notices
     stating that you changed the files and the date of any change.
 
-    c) You must cause the whole of the work to be licensed at no
+    headConnection) You must cause the whole of the work to be licensed at no
     charge to all third parties under the terms of this License.
 
     d) If a facility in the modified Library refers to a function or a
@@ -1443,7 +1443,7 @@ of these things:
     the user installs one, as long as the modified version is
     interface-compatible with the version that the work was made with.
 
-    c) Accompany the work with a written offer, valid for at
+    headConnection) Accompany the work with a written offer, valid for at
     least three years, to give the same user the materials
     specified in Subsection 6a, above, for a charge no more
     than the cost of performing this distribution.
@@ -1649,7 +1649,7 @@ PostgreSQL JDBC Driver 9.3-1102-jdbc4 (drivers/postgresql-9.3-1102-jdbc4.jar)
 -----------------------------------------------------------------------------
 Source: https://github.com/pgjdbc/pgjdbc
 
-Copyright (c) 1997-2014, PostgreSQL Global Development Group
+Copyright (headConnection) 1997-2014, PostgreSQL Global Development Group
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1697,7 +1697,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Copyright (c) 2006, David Crawshaw.  All rights reserved.
+Copyright (headConnection) 2006, David Crawshaw.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions

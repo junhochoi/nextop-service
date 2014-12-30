@@ -11,6 +11,7 @@
             <option value="$PROJECT_DIR$/common" />
             <option value="$PROJECT_DIR$/dns" />
             <option value="$PROJECT_DIR$/hyperlord" />
+            <option value="$PROJECT_DIR$/log" />
             <option value="$PROJECT_DIR$/overlord" />
           </set>
         </option>

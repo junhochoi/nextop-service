@@ -17,9 +17,11 @@ import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** Model for the service */
+import static io.nextop.service.log.ServiceLog.*;
+
+/** Model for the service admin (dns, hyperlord) */
 // TODO verify that Observables return SafeSubscriber subscriptions
-public class ServiceModel implements AutoCloseable {
+public class ServiceAdminModel implements AutoCloseable {
     private final Scheduler scheduler;
 
     private final Observable<JsonObject> configSource;
@@ -27,21 +29,23 @@ public class ServiceModel implements AutoCloseable {
 
     // CONFIG
 
-    private volatile int updateTryCount = 1;
+    private volatile int reservationTryCount = 1;
 
     // SUBSCRIPTIONS
 
     private Subscription configSubscription;
 
 
-    public ServiceModel(Scheduler scheduler, Observable<JsonObject> configSource) {
+    public ServiceAdminModel(Scheduler scheduler, Observable<JsonObject> configSource) {
         this.scheduler = scheduler;
         this.configSource = configSource;
+
 
         configSubscription = configSource.subscribeOn(scheduler
         ).subscribe(
                 (JsonObject configObject) -> {
-                    updateTryCount = configObject.get("service").getAsJsonObject().get("updateTryCount").getAsInt();
+                    reservationTryCount = configObject.get("reservationTryCount").getAsInt();
+                    log.message("adminModel.config", "reservationTryCount = %d", reservationTryCount);
                 },
                 (Throwable t) -> {},
                 () -> {}
@@ -52,11 +56,13 @@ public class ServiceModel implements AutoCloseable {
         // FIXME is there a way to implement the pool in RX? seems possible, make a util
         connectionSource = configSource.subscribeOn(scheduler
         ).map((JsonObject configObject) -> {
+            log.message("adminModel.connection.config", "%s", configObject);
+
             String host = configObject.get("mysqlHost").getAsString();
-            int port = configObject.get("mysqlPort").getAsInt();;
+            int port = configObject.get("mysqlPort").getAsInt();
             String db = configObject.get("mysqlDb").getAsString();
-            String user = configObject.get("user").getAsString();
-            String password = configObject.get("password").getAsString();
+            String user = configObject.get("mysqlUser").getAsString();
+            String password = configObject.get("mysqlPassword").getAsString();
             URI mysqlUri;
             try {
                 mysqlUri = new URIBuilder().setScheme("jdbc:mysql"
@@ -83,13 +89,13 @@ public class ServiceModel implements AutoCloseable {
             }
         }).doOnEach(new Observer<Connection>() {
             @Nullable
-            Connection c = null;
+            Connection headConnection = null;
 
             @Override
             public void onNext(Connection connection) {
                 close();
-                assert null == c;
-                c = connection;
+                assert null == headConnection;
+                headConnection = connection;
             }
             @Override
             public void onCompleted() {
@@ -102,16 +108,16 @@ public class ServiceModel implements AutoCloseable {
 
             void close() {
                 // FIXME log close
-                if (null != c) {
+                if (null != headConnection) {
                     try {
-                        c.close();
+                        headConnection.close();
                     } catch (SQLException e) {
                         // FIXME log
                     }
-                    c = null;
+                    headConnection = null;
                 }
             }
-        });
+        }).first();
     }
 
     @Override
@@ -122,8 +128,10 @@ public class ServiceModel implements AutoCloseable {
 
     /////// PERMISSIONS ///////
 
-    public <T> Observable<T> requirePermissions(final Observable<T> source, final NxId accessKey, final Collection<NxId> grantKeys, final Permission.Mask ... permissionMasks) {
+    public <T> Observable<T> requirePermissions(Observable<T> source, NxId accessKey, Collection<NxId> grantKeys, Permission.Mask ... permissionMasks) {
         return connectionSource.map((Connection connection) -> {
+            log.message("adminModel.requirePermissions");
+
             try {
                 // from all given grant keys, gather all permission names with value=true
                 // then test if the given masks apply
@@ -152,12 +160,15 @@ public class ServiceModel implements AutoCloseable {
                         return grantKeyPermissions.stream();
                     }).collect(Collectors.toSet());
 
+                    boolean pass = true;
                     for (Permission.Mask permissionMask : permissionMasks) {
                         if (permissionMask.mask != grantKeysPermissions.contains(permissionMask.permission)) {
-                            return false;
+                            pass = false;
+                            break;
                         }
                     }
-                    return true;
+                    log.message("adminModel.requirePermissions", "pass = %s", pass);
+                    return pass;
                 } finally {
                     selectPermissionNames.close();
                 }
@@ -179,12 +190,13 @@ public class ServiceModel implements AutoCloseable {
     /** just* API methods emit one value then call onComplete */
 
 
-    public Observable<Overlord> justReserveOverlord(final NxId accessKey) {
+    public Observable<Overlord> justReserveOverlord(NxId accessKey) {
         return connectionSource.map((Connection connection) -> {
             NxId localKey = NxId.create();
 
             try {
-                for (int i = 0; i < updateTryCount; ++i) {
+                // retry is needed when the free slot from the transaction is taken before the transaction commits
+                for (int i = 0; i < reservationTryCount; ++i) {
                     try {
                         connection.setAutoCommit(false);
                         try {
@@ -256,7 +268,7 @@ public class ServiceModel implements AutoCloseable {
         }).take(1);
     }
 
-    public Observable<ApiStatus> justReleaseOverlordAuthority(final Authority authority) {
+    public Observable<ApiStatus> justReleaseOverlordAuthority(Authority authority) {
         return connectionSource.map((Connection connection) -> {
             // note: this does not delete from the status since it's easier to manage that synchronously with the status checks
             try {
@@ -284,8 +296,12 @@ public class ServiceModel implements AutoCloseable {
     // FIXME overlord status
     // FIXME overlord status is used to maintain reservations
 
-    public Observable<Collection<Overlord>> justOverlords(final NxId accessKey) {
+    public Observable<Collection<Overlord>> justOverlords(NxId accessKey) {
+        log.message("adminModel.justOverlords");
+
         return connectionSource.map((Connection connection) -> {
+            log.message("adminModel.justOverlords.withConnection");
+
             Collection<Overlord> overlords = new ArrayList<Overlord>(16);
             try {
                 PreparedStatement selectOverlord = connection.prepareStatement("SELECT Overlord.public_host, Overlord.port, Overlord.local_key," +
@@ -378,7 +394,6 @@ public class ServiceModel implements AutoCloseable {
     public Observable<ApiStatus> justDirtyPermissions(NxId accessKey) {
         // TODO currently no caches
         // TODO dirty shared cache
-
         return Observable.just(ApiStatus.ok());
     }
 

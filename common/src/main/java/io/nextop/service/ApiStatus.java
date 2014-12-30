@@ -8,35 +8,35 @@ public final class ApiStatus {
     /////// 2XX ///////
 
     public static ApiStatus ok() {
-        return new ApiStatus(HttpStatus.SC_OK);
+        return new ApiStatus(HttpStatus.SC_OK,  "OK");
     }
 
     public static ApiStatus created() {
-        return new ApiStatus(HttpStatus.SC_CREATED);
+        return new ApiStatus(HttpStatus.SC_CREATED, "CREATED");
     }
 
     public static ApiStatus accepted() {
-        return new ApiStatus(HttpStatus.SC_ACCEPTED);
+        return new ApiStatus(HttpStatus.SC_ACCEPTED, "ACCEPTED");
     }
 
     /////// 4XX ///////
 
     public static ApiStatus gone() {
-        return new ApiStatus(HttpStatus.SC_GONE);
+        return new ApiStatus(HttpStatus.SC_GONE, "GONE");
     }
 
     public static ApiStatus unauthorized() {
-        return new ApiStatus(HttpStatus.SC_UNAUTHORIZED);
+        return new ApiStatus(HttpStatus.SC_UNAUTHORIZED, "UNAUTHORIZED");
     }
 
     public static ApiStatus badRequest() {
-        return new ApiStatus(HttpStatus.SC_BAD_REQUEST);
+        return new ApiStatus(HttpStatus.SC_BAD_REQUEST, "BAD REQUEST");
     }
 
     /////// 5XX ///////
 
     public static ApiStatus internalError() {
-        return new ApiStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        return new ApiStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR, "INTERNAL SERVER ERROR");
     }
 
 

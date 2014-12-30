@@ -3,6 +3,7 @@ package io.nextop.service.dns;
 
 import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -11,9 +12,8 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.nextop.rx.util.ConfigWatcher;
-import io.nextop.service.NxId;
-import io.nextop.service.Permission;
-import io.nextop.service.ServiceModel;
+import io.nextop.service.*;
+import org.apache.commons.cli.*;
 import rx.Observable;
 import rx.Observer;
 import rx.Scheduler;
@@ -21,17 +21,18 @@ import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.*;
+
+import static io.nextop.service.log.ServiceLog.log;
 
 
 public class DnsService {
@@ -39,56 +40,57 @@ public class DnsService {
     private final Scheduler modelScheduler;
 
     private final ConfigWatcher configWatcher;
-    private final ServiceModel serviceModel;
+    private final ServiceAdminModel serviceAdminModel;
 
     @Nullable
     private Subscription serverSubscription = null;
 
 
-    DnsService(String ... configFiles) {
+    DnsService(JsonObject defaultConfigObject, String ... configFiles) {
         dnsScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
-            new Thread(r, "DNSService Worker")
+            new Thread(r, "DnsService Worker")
         ));
         modelScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
-                        new Thread(r, "ServiceModel Worker")
+                        new Thread(r, "ServiceAdminModel Worker")
         ));
 
-        configWatcher = new ConfigWatcher(dnsScheduler, configFiles);
-        serviceModel = new ServiceModel(modelScheduler, configWatcher.getMergedObservable());
+        configWatcher = new ConfigWatcher(dnsScheduler, defaultConfigObject, configFiles);
+        serviceAdminModel = new ServiceAdminModel(modelScheduler, configWatcher.getMergedObservable().map(configObject ->
+                configObject.get("adminModel").getAsJsonObject()));
     }
 
 
     public void start()  {
+        log.count("dns.start");
+
         if (null == serverSubscription) {
             serverSubscription = configWatcher.getMergedObservable().subscribe(new Observer<JsonObject>() {
                 @Nullable EventLoopGroup bossGroup = null;
                 @Nullable EventLoopGroup workerGroup = null;
-                @Nullable ChannelFuture channelf = null;
+                @Nullable Channel channel = null;
 
 
                 @Override
                 public void onNext(JsonObject configObject) {
+                    log.message("dns.start.config", "%s", configObject);
+
                     close();
                     assert null == bossGroup;
                     assert null == workerGroup;
-                    assert null == channelf;
+                    assert null == channel;
 
                     int port = configObject.get("httpPort").getAsInt();
 
                     bossGroup = new NioEventLoopGroup();
                     workerGroup = new NioEventLoopGroup();
-                    try {
-                        ServerBootstrap b = new ServerBootstrap();
-                        b.option(ChannelOption.SO_BACKLOG, 1024);
-                        b.group(bossGroup, workerGroup)
-                                .channel(NioServerSocketChannel.class)
-                                .childHandler(new HttpServerInitializer(configObject));
+                    ServerBootstrap b = new ServerBootstrap();
+                    b.option(ChannelOption.SO_BACKLOG, 1024);
+                    b.group(bossGroup, workerGroup)
+                            .channel(NioServerSocketChannel.class)
+                            .childHandler(new HttpServerInitializer(configObject));
 
-                        channelf = b.bind(port);
-                    } finally {
-                        bossGroup.shutdownGracefully();
-                        workerGroup.shutdownGracefully();
-                    }
+                    channel = b.bind(port).syncUninterruptibly().channel();
+                    log.message("dns.start", "listening on port %d", port);
                 }
                 @Override
                 public void onCompleted() {
@@ -96,23 +98,28 @@ public class DnsService {
                 }
                 @Override
                 public void onError(Throwable e) {
+                    log.unhandled("dns.start", e);
                     close();
                 }
 
 
                 void close() {
-                    if (null != bossGroup) {
-                        bossGroup.shutdownGracefully();
-                        bossGroup = null;
+                    log.message("dns.start.close");
+
+                    if (null != channel) {
+                        channel.close();
+                        channel = null;
                     }
                     if (null != workerGroup) {
                         workerGroup.shutdownGracefully();
                         workerGroup = null;
                     }
-                    if (null != channelf) {
-                        channelf.addListener(ChannelFutureListener.CLOSE);
-                        channelf = null;
+                    if (null != bossGroup) {
+                        bossGroup.shutdownGracefully();
+                        bossGroup = null;
                     }
+
+
                 }
             });
         }
@@ -130,49 +137,51 @@ public class DnsService {
 
     /////// ROUTES ///////
 
-    private Observable<HttpResponse> route(HttpMethod method, String path, Map<String, List<String>> parameters) {
-        String[] segments = path.split("/");
+    private Observable<HttpResponse> route(HttpMethod method, List<String> segments, Map<String, List<String>> parameters) {
+        log.message("dns.route", "%s %s %s", method, segments, parameters);
+
 
         // parse and validate path+params
         NxId accessKey;
         List<NxId> grantKeys;
 
-        if (segments.length <= 0) {
-            return errorRoute(method, path, parameters);
+        if (segments.isEmpty()) {
+            return errorRoute(method, segments, parameters);
         }
         try {
-            accessKey = NxId.valueOf(segments[0]);
+            accessKey = NxId.valueOf(segments.get(0));
         } catch (IllegalArgumentException e) {
-            return errorRoute(method, path, parameters);
+            return errorRoute(method, segments, parameters);
         }
         try {
             grantKeys = parameters.getOrDefault("grant-key", Collections.<String>emptyList()).stream().map((String grantKeyString) -> NxId.valueOf(grantKeyString)).collect(Collectors.toList());
         } catch (IllegalArgumentException e) {
-            return errorRoute(method, path, parameters);
+            return errorRoute(method, segments, parameters);
         }
 
+        log.message("");
 
-        if (2 == segments.length && HttpMethod.GET.equals(method) && "overlord".equals(segments[1])) {
+        if (2 == segments.size() && HttpMethod.GET.equals(method) && "overlord".equals(segments.get(1))) {
             return getOverlords(accessKey, grantKeys);
-        } else if (2 == segments.length && HttpMethod.GET.equals(method) && "edge".equals(segments[1])) {
+        } else if (2 == segments.size() && HttpMethod.GET.equals(method) && "edge".equals(segments.get(1))) {
             return getEdges(accessKey, grantKeys);
-        } else if (2 == segments.length && HttpMethod.POST.equals(method) && "overlord".equals(segments[1])) {
+        } else if (2 == segments.size() && HttpMethod.POST.equals(method) && "overlord".equals(segments.get(1))) {
             return postOverlords(accessKey, grantKeys);
-        } else if (2 == segments.length && HttpMethod.POST.equals(method) && "edge".equals(segments[1])) {
+        } else if (2 == segments.size() && HttpMethod.POST.equals(method) && "edge".equals(segments.get(1))) {
             return postEdges(accessKey, grantKeys);
-        } else if (1 == segments.length && HttpMethod.POST.equals(method)) {
+        } else if (1 == segments.size() && HttpMethod.POST.equals(method)) {
             return postAccessKey(accessKey, grantKeys);
         } else {
-            return errorRoute(method, path, parameters);
+            return errorRoute(method, segments, parameters);
         }
     }
-    private Observable<HttpResponse> errorRoute(HttpMethod method, String path, Map<String, List<String>> parameters) {
+    private Observable<HttpResponse> errorRoute(HttpMethod method, List<String> segments, Map<String, List<String>> parameters) {
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST));
     }
 
 
     private Observable<HttpResponse> getOverlords(NxId accessKey, Collection<NxId> grantKeys) {
-        return serviceModel.requirePermissions(serviceModel.justOverlords(accessKey), accessKey, grantKeys,
+        return serviceAdminModel.requirePermissions(serviceAdminModel.justOverlords(accessKey), accessKey, grantKeys,
                 Permission.admin.on()).map(authorities -> {
                     String joinedAuthorityStrings = authorities.stream().map(authority -> authority.toString()).collect(Collectors.joining(";"));
 
@@ -182,7 +191,7 @@ public class DnsService {
     }
 
     private Observable<HttpResponse> postOverlords(NxId accessKey, Collection<NxId> grantKeys) {
-        return serviceModel.requirePermissions(serviceModel.justDirtyOverlords(accessKey), accessKey, grantKeys,
+        return serviceAdminModel.requirePermissions(serviceAdminModel.justDirtyOverlords(accessKey), accessKey, grantKeys,
                 Permission.admin.on()).map(apiResponse -> {
 
             return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT);
@@ -190,8 +199,12 @@ public class DnsService {
     }
 
     private Observable<HttpResponse> getEdges(NxId accessKey, Collection<NxId> grantKeys) {
-        // FIXME
-        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+        return serviceAdminModel.justOverlords(accessKey).map(authorities -> {
+            String joinedAuthorityStrings = authorities.stream().map(authority -> authority.toString()).collect(Collectors.joining(";"));
+
+            return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(joinedAuthorityStrings.getBytes(Charsets.UTF_8)));
+        });
     }
 
     private Observable<HttpResponse> postEdges(NxId accessKey, Collection<NxId> grantKeys) {
@@ -248,7 +261,7 @@ public class DnsService {
                 }
 
                 QueryStringDecoder d = new QueryStringDecoder(r.getUri());
-                drain(route(r.getMethod(), d.path(), d.parameters()), context, isKeepAlive(r));
+                drain(route(r.getMethod(), parseSegments(d.path()), d.parameters()), context, isKeepAlive(r));
             }
         }
 
@@ -260,43 +273,60 @@ public class DnsService {
         }
 
 
-        void drain(Observable<HttpResponse> responseSource, final ChannelHandlerContext context, final boolean keepAlive) {
+        void drain(Observable<HttpResponse> responseSource, ChannelHandlerContext context, boolean keepAlive) {
             responseSource.subscribe(new Observer<HttpResponse>() {
 
 
 
-                @Nullable HttpResponse headResponse = null;
+                @Nullable
+                HttpResponse headResponse = null;
+
 
                 @Override
                 public void onNext(HttpResponse response) {
-                    if (null != headResponse) {
-                        // FIXME error
-                    }
                     headResponse = response;
                 }
 
                 @Override
                 public void onError(Throwable t) {
-                    headResponse = /* FIXME error response */ null;
-                    send(headResponse);
+                    HttpResponse r;
+                    if (t instanceof ApiException) {
+                        ApiStatus status = ((ApiException) t).status;
+                        r = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, new HttpResponseStatus(status.code,
+                                null != status.reason ? status.reason : ""));
+                    } else {
+                        r = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+                    }
+                    send(r);
                 }
 
                 @Override
                 public void onCompleted() {
-                    if (null == headResponse) {
-                        // FIXME generate empty error response (temp unavailable)
+                    HttpResponse r;
+                    if (null != headResponse) {
+                        r = headResponse;
+                    } else {
+                        r = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT);
                     }
-                    send(headResponse);
+                    send(r);
                 }
 
 
                 void send(HttpResponse response) {
+                    log.message("dns.send", "%s", response);
+
+                    response.headers().set(CONTENT_TYPE, "text/plain");
+                    if (response instanceof FullHttpResponse) {
+                        response.headers().set(CONTENT_LENGTH, ((FullHttpResponse) response).content().readableBytes());
+                    }
                     if (keepAlive) {
                         response.headers().set(CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
                         context.write(response);
                     } else {
-                        context.write(response).addListener(ChannelFutureListener.CLOSE);
+                        context.write(response
+                        ).addListener(ChannelFutureListener.CLOSE);
                     }
+                    context.flush();
                 }
 
             });
@@ -306,17 +336,68 @@ public class DnsService {
     }
 
 
+    private static List<String> parseSegments(String path) {
+        int j;
+        if ('/' == path.charAt(0)) {
+            j = 1;
+        } else {
+            j = 0;
+        }
+
+        final int length = path.length();
+        int n = 0;
+
+        for (int i = j; i <= length; ++i) {
+            if (length == i || '/' == path.charAt(i)) {
+                ++n;
+            }
+        }
+        List<String> segments = new ArrayList<>(n);
+        for (int i = j; i <= length; ++i) {
+            if (length == i || '/' == path.charAt(i)) {
+                segments.add(path.substring(j, i));
+                j = i + 1;
+            }
+        }
+
+        return segments;
+    }
+
 
     /////// MAIN ///////
 
     public static void main(String[] in) {
-        // FIXME logging
-        System.out.printf("DNS\n");
+        Options options = new Options();
+        options.addOption("c", "configFile", true, "JSON config file");
 
+        CommandLine cl;
+        try {
+            main(new GnuParser().parse(options, in));
+        } catch (Exception e) {
+            log.unhandled("dns.main", e);
+            new HelpFormatter().printHelp("dns", options);
+            System.exit(400);
+        }
+    }
+    private static void main(CommandLine cl) throws Exception {
+        JsonObject defaultConfigObject;
+        // extract the default (bundled) config object
+        Reader r = new BufferedReader(new InputStreamReader(ClassLoader.getSystemClassLoader().getResourceAsStream("conf.json"), Charsets.UTF_8));
+        try {
+            defaultConfigObject = new JsonParser().parse(r).getAsJsonObject();
+        } finally {
+            r.close();
+        }
 
-        // TODO opts
-        String configFile = "./conf.json";
+        @Nullable String[] configFiles = cl.getOptionValues('c');
 
-        new DnsService(configFile).start();
+        Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
+            if ("start".equals(arg)) {
+                DnsService dnsService = new DnsService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
+                dnsService.start();
+            } else {
+                throw new IllegalArgumentException();
+            }
+        });
     }
 }
