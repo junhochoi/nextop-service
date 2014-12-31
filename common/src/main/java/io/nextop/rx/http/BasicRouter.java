@@ -59,6 +59,7 @@ public class BasicRouter implements Router {
             } else {
                 throw new IllegalArgumentException();
             }
+            matchers.add(matcher);
         }
         matchers.add(new Tail());
         routes.put(method, new Route(method, matchers, responseGenerator));

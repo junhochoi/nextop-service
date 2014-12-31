@@ -1,0 +1,12 @@
+{
+  "httpPort": 8010,
+  "adminModel": {
+    "mysqlHost": "localhost",
+    "mysqlPort": 3306,
+    "mysqlDb": "service",
+    "mysqlUser": "root",
+    "mysqlPassword" : "",
+
+    "reservationTryCount": 4
+  }
+}

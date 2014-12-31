@@ -297,11 +297,7 @@ public class ServiceAdminModel implements AutoCloseable {
     // FIXME overlord status is used to maintain reservations
 
     public Observable<Collection<Overlord>> justOverlords(NxId accessKey) {
-        log.message("adminModel.justOverlords");
-
         return connectionSource.map((Connection connection) -> {
-            log.message("adminModel.justOverlords.withConnection");
-
             Collection<Overlord> overlords = new ArrayList<Overlord>(16);
             try {
                 PreparedStatement selectOverlord = connection.prepareStatement("SELECT Overlord.public_host, Overlord.port, Overlord.local_key," +
