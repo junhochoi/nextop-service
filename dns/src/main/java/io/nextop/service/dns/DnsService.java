@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,36 +45,33 @@ public class DnsService {
         BasicRouter router = new BasicRouter();
         Object accessKeyMatcher = BasicRouter.var("access-key", segment -> NxId.valueOf(segment));
 
-        // FIXME is there a more java interface for this?
-        Func1<Func1<Map<String, List<?>>, Observable<HttpResponse>>, Func1<Map<String, List<?>>, Observable<HttpResponse>>> validate = (Func1<Map<String, List<?>>, Observable<HttpResponse>> responseGenerator) ->
-            (Map<String, List<?>> parameters) -> {
+        Function<Map<String, List<?>>, Map<String, List<?>>> validate = parameters -> {
                 parameters.put("grant-key", ((List<String>) parameters.getOrDefault("grant-key", Collections.<String>emptyList()
                 )).stream().map((String grantKeyString) -> NxId.valueOf(grantKeyString)).collect(Collectors.toList()));
-
-                return responseGenerator.call(parameters);
+                return parameters;
             };
 
-        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "overlord"), validate.call(parameters -> {
+        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "overlord"), validate.andThen(parameters -> {
             NxId accessKey = (NxId) parameters.get("access-key").get(0);
             List<NxId> grantKeys = (List<NxId>) parameters.get("grant-key");
             return getOverlords(accessKey, grantKeys);
         }));
-        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "edge"), validate.call(parameters -> {
+        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "edge"), validate.andThen(parameters -> {
             NxId accessKey = (NxId) parameters.get("access-key").get(0);
             List<NxId> grantKeys = (List<NxId>) parameters.get("grant-key");
             return getEdges(accessKey, grantKeys);
         }));
-        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "overlord"), validate.call(parameters -> {
+        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "overlord"), validate.andThen(parameters -> {
             NxId accessKey = (NxId) parameters.get("access-key").get(0);
             List<NxId> grantKeys = (List<NxId>) parameters.get("grant-key");
             return postOverlords(accessKey, grantKeys);
         }));
-        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "edge"), validate.call(parameters -> {
+        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "edge"), validate.andThen(parameters -> {
             NxId accessKey = (NxId) parameters.get("access-key").get(0);
             List<NxId> grantKeys = (List<NxId>) parameters.get("grant-key");
             return postEdges(accessKey, grantKeys);
         }));
-        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher), validate.call(parameters -> {
+        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher), validate.andThen(parameters -> {
             NxId accessKey = (NxId) parameters.get("access-key").get(0);
             List<NxId> grantKeys = (List<NxId>) parameters.get("grant-key");
             return postAccessKey(accessKey, grantKeys);

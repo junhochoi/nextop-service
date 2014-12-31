@@ -8,6 +8,7 @@ import rx.Observable;
 import rx.functions.Func1;
 
 import java.util.*;
+import java.util.function.Function;
 
 public class BasicRouter implements Router {
 
@@ -33,8 +34,7 @@ public class BasicRouter implements Router {
         try {
             for (Route route : routes.get(method)) {
                 if (Matcher.next(-1, route.matchers, -1, segments, parameters)) {
-
-                    return route.responseGenerator.call(parameters);
+                    return route.responseGenerator.apply(parameters);
                 }
             }
         } catch (IllegalArgumentException e) {
@@ -48,7 +48,7 @@ public class BasicRouter implements Router {
     /** Add a route.
      * @param segments constant segment strings or {@link #var} */
     public BasicRouter add(HttpMethod method, List<Object> segments,
-                           Func1<Map<String, List<?>>, Observable<HttpResponse>> responseGenerator) {
+                           Function<Map<String, List<?>>, Observable<HttpResponse>> responseGenerator) {
         List<Matcher> matchers = new ArrayList<Matcher>(segments.size() + 1);
         for (Object segment : segments) {
             Matcher matcher;
@@ -70,10 +70,10 @@ public class BasicRouter implements Router {
     private static final class Route {
         final HttpMethod method;
         final List<Matcher> matchers;
-        final Func1<Map<String, List<?>>, Observable<HttpResponse>> responseGenerator;
+        final Function<Map<String, List<?>>, Observable<HttpResponse>> responseGenerator;
 
         Route(HttpMethod method, List<Matcher> matchers,
-              Func1<Map<String, List<?>>, Observable<HttpResponse>> responseGenerator) {
+              Function<Map<String, List<?>>, Observable<HttpResponse>> responseGenerator) {
             this.method = method;
             this.matchers = matchers;
             this.responseGenerator = responseGenerator;

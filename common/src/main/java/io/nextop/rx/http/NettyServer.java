@@ -169,7 +169,8 @@ public final class NettyServer {
 
 
         void drain(Observable<HttpResponse> responseSource, ChannelHandlerContext context, boolean keepAlive) {
-            responseSource.subscribe(new Observer<HttpResponse>() {
+            responseSource.subscribeOn(scheduler
+            ).subscribe(new Observer<HttpResponse>() {
 
 
 
