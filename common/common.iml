@@ -25,5 +25,6 @@
     <orderEntry type="library" exported="" name="Gradle: commons-codec:commons-codec:1.6" level="project" />
     <orderEntry type="library" exported="" name="Gradle: com.google.guava:guava:18.0" level="project" />
     <orderEntry type="library" exported="" name="Gradle: io.netty:netty-all:5.0.0.Alpha1" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: mysql:mysql-connector-java:5.1.34" level="project" />
   </component>
 </module>

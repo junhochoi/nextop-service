@@ -10,9 +10,7 @@ import io.nextop.rx.http.BasicRouter;
 import io.nextop.rx.http.NettyServer;
 import io.nextop.rx.http.Router;
 import io.nextop.rx.util.ConfigWatcher;
-import io.nextop.service.NxId;
-import io.nextop.service.Permission;
-import io.nextop.service.ServiceAdminModel;
+import io.nextop.service.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -37,19 +35,70 @@ public class HyperlordService {
     private final Router router() {
         BasicRouter router = new BasicRouter();
         Object accessKeyMatcher = BasicRouter.var("access-key", segment -> NxId.valueOf(segment));
+        Object grantKeyMatcher = BasicRouter.var("grant-key", segment -> NxId.valueOf(segment));
 
         Function<Map<String, List<?>>, Map<String, List<?>>> validate = parameters -> {
-            parameters.put("grant-key", ((List<String>) parameters.getOrDefault("grant-key", Collections.<String>emptyList()
-            )).stream().map((String grantKeyString) -> NxId.valueOf(grantKeyString)).collect(Collectors.toList()));
+            return parameters;
+        };
+        Function<Map<String, List<?>>, Map<String, List<?>>> validateGitCommitHash = parameters -> {
+            parameters.put("git-commit-hash", parameters.getOrDefault("git-commit-hash", Collections.emptyList()));
+            return parameters;
+        };
+        Function<Map<String, List<?>>, Map<String, List<?>>> validatePermissionMasks = parameters -> {
+            // $permission-name=$permission-value
+            Permission[] permissions = Permission.values();
+            List<Permission.Mask> masks = new ArrayList<>(permissions.length);
+            for (Permission permission : permissions) {
+                List<Object> values = (List<Object>) parameters.getOrDefault(permission.name(), Collections.emptyList());
+                if (!values.isEmpty()) {
+                    masks.add(permission.mask(Boolean.parseBoolean(values.get(0).toString())));
+                }
+            }
+            parameters.put("permission-mask", masks);
+
             return parameters;
         };
 
-        // PUT https://hyperlord.nextop.io/$access-key?set-root-grant-key=$root-grant-key
-        // DELETE https://hyperlord.nextop.io/$access-key
-        // PUT https://$access-key.nextop.io/grant-key/$grant-key?$permission-name=$permission-value
-        // POST https://$access-key.nextop.io/grant-key/$grant-key?$permission-name=$permission-value
-        // DELETE https://$access-key.nextop.io/grant-key/$grant-key
-        // FIXME
+
+        router.add(HttpMethod.PUT, Arrays.asList(accessKeyMatcher), validate.andThen(validateGitCommitHash
+        ).andThen(parameters -> {
+            parameters.put("root-grant-key", ((List<String>) parameters.getOrDefault("root-grant-key", Collections.emptyList()
+            )).stream().map((String grantKeyString) -> NxId.valueOf(grantKeyString)).collect(Collectors.toList()));
+            return parameters;
+        }).andThen(parameters -> {
+            NxId accessKey = (NxId) parameters.get("access-key").get(0);
+            NxId rootGrantKey = ((List<NxId>) parameters.get("root-grant-key")).get(0);
+            String gitCommitHash = parameters.get("git-commit-hash").get(0).toString();
+            return putAccessKey(accessKey, rootGrantKey, gitCommitHash);
+        }));
+        router.add(HttpMethod.DELETE, Arrays.asList(accessKeyMatcher), validate.andThen(parameters -> {
+            NxId accessKey = (NxId) parameters.get("access-key").get(0);
+            return deleteAccessKey(accessKey);
+        }));
+        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "grant-key"), validate.andThen(parameters -> {
+            NxId accessKey = (NxId) parameters.get("access-key").get(0);
+            return getGrantKeys(accessKey);
+        }));
+        router.add(HttpMethod.PUT, Arrays.asList(accessKeyMatcher, "grant-key", grantKeyMatcher), validate.andThen(validatePermissionMasks
+        ).andThen(parameters -> {
+            NxId accessKey = (NxId) parameters.get("access-key").get(0);
+            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
+            List<Permission.Mask> masks = (List<Permission.Mask>) parameters.get("permission-mask");
+            return putGrantKey(accessKey, grantKey, masks);
+        }));
+        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "grant-key", grantKeyMatcher), validate.andThen(validatePermissionMasks
+        ).andThen(parameters -> {
+            NxId accessKey = (NxId) parameters.get("access-key").get(0);
+            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
+            List<Permission.Mask> masks = (List<Permission.Mask>) parameters.get("permission-mask");
+            return updateGrantKey(accessKey, grantKey, masks);
+        }));
+        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "grant-key", grantKeyMatcher), validate.andThen(parameters -> {
+            NxId accessKey = (NxId) parameters.get("access-key").get(0);
+            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
+            return deleteGrantKey(accessKey, grantKey);
+        }));
+
 
         return router;
     }
@@ -57,11 +106,12 @@ public class HyperlordService {
 
     private final Scheduler hyperlordScheduler;
     private final Scheduler modelScheduler;
+    private final Scheduler controllerScheduler;
 
     private final ConfigWatcher configWatcher;
-    private final ServiceAdminModel serviceAdminModel;
-
     private final NettyServer httpServer;
+
+    private final ServiceContext context;
 
 
     HyperlordService(JsonObject defaultConfigObject, String ... configFiles) {
@@ -71,12 +121,20 @@ public class HyperlordService {
         modelScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
                         new Thread(r, "ServiceAdminModel Worker")
         ));
+        controllerScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
+                        new Thread(r, "ServiceAdminController Worker")
+        ));
 
         configWatcher = new ConfigWatcher(hyperlordScheduler, defaultConfigObject, configFiles);
-        serviceAdminModel = new ServiceAdminModel(modelScheduler, configWatcher.getMergedObservable().map(configObject ->
-                configObject.get("adminModel").getAsJsonObject()));
-
         httpServer = new NettyServer(hyperlordScheduler, router());
+
+        // CONTEXT
+        context = new ServiceContext();
+        new ServiceAdminModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
+                configObject.get("adminModel").getAsJsonObject()));
+        new ServiceAdminController(context, controllerScheduler);
+
+
     }
 
 
@@ -88,6 +146,9 @@ public class HyperlordService {
             return config;
         }));
 
+
+        // FIXME start monitoring up overlords
+//        context.adminController.startMonitor()
     }
 
     public void stop() {
@@ -97,7 +158,36 @@ public class HyperlordService {
 
     /////// ROUTES ///////
 
-    // FIXME
+    private Observable<HttpResponse> putAccessKey(NxId accessKey, NxId rootGrantKey, String gitCommitHash) {
+//        context.adminController.initAccessKey(accessKey, rootGrantKey, gitCommitHash);
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+    }
+
+    private Observable<HttpResponse> deleteAccessKey(NxId accessKey) {
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+    }
+
+    private Observable<HttpResponse> getGrantKeys(NxId accessKey) {
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+    }
+
+    private Observable<HttpResponse> putGrantKey(NxId accessKey, NxId grantKey, List<Permission.Mask> masks) {
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+    }
+
+    private Observable<HttpResponse> updateGrantKey(NxId accessKey, NxId grantKey, List<Permission.Mask> masks) {
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+    }
+
+    private Observable<HttpResponse> deleteGrantKey(NxId accessKey, NxId grantKey) {
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+    }
 
 
     /////// MAIN ///////

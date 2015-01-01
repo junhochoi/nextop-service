@@ -46,7 +46,7 @@ public class DnsService {
         Object accessKeyMatcher = BasicRouter.var("access-key", segment -> NxId.valueOf(segment));
 
         Function<Map<String, List<?>>, Map<String, List<?>>> validate = parameters -> {
-                parameters.put("grant-key", ((List<String>) parameters.getOrDefault("grant-key", Collections.<String>emptyList()
+                parameters.put("grant-key", ((List<String>) parameters.getOrDefault("grant-key", Collections.emptyList()
                 )).stream().map((String grantKeyString) -> NxId.valueOf(grantKeyString)).collect(Collectors.toList()));
                 return parameters;
             };
@@ -85,9 +85,9 @@ public class DnsService {
     private final Scheduler modelScheduler;
 
     private final ConfigWatcher configWatcher;
-    private final ServiceAdminModel serviceAdminModel;
-
     private final NettyServer httpServer;
+
+    private final ServiceContext context;
 
 
     DnsService(JsonObject defaultConfigObject, String ... configFiles) {
@@ -95,14 +95,17 @@ public class DnsService {
             new Thread(r, "DnsService Worker")
         ));
         modelScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
-                        new Thread(r, "ServiceAdminModel Worker")
+                        new Thread(r, "context.adminModel Worker")
         ));
 
         configWatcher = new ConfigWatcher(dnsScheduler, defaultConfigObject, configFiles);
-        serviceAdminModel = new ServiceAdminModel(modelScheduler, configWatcher.getMergedObservable().map(configObject ->
+        httpServer = new NettyServer(dnsScheduler, router());
+
+        // CONTEXT
+        context = new ServiceContext();
+        new ServiceAdminModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
                 configObject.get("adminModel").getAsJsonObject()));
 
-        httpServer = new NettyServer(dnsScheduler, router());
     }
 
 
@@ -124,17 +127,17 @@ public class DnsService {
     /////// ROUTES ///////
 
     private Observable<HttpResponse> getOverlords(NxId accessKey, Collection<NxId> grantKeys) {
-        return serviceAdminModel.requirePermissions(serviceAdminModel.justOverlords(accessKey), accessKey, grantKeys,
+        return context.adminModel.requirePermissions(context.adminModel.justOverlords(accessKey), accessKey, grantKeys,
                 Permission.admin.on()).map(authorities -> {
-                    String joinedAuthorityStrings = authorities.stream().map(authority -> authority.toString()).collect(Collectors.joining(";"));
+            String joinedAuthorityStrings = authorities.stream().map(authority -> authority.toString()).collect(Collectors.joining(";"));
 
-                    return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK,
-                            Unpooled.copiedBuffer(joinedAuthorityStrings.getBytes(Charsets.UTF_8)));
-                });
+            return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(joinedAuthorityStrings.getBytes(Charsets.UTF_8)));
+        });
     }
 
     private Observable<HttpResponse> postOverlords(NxId accessKey, Collection<NxId> grantKeys) {
-        return serviceAdminModel.requirePermissions(serviceAdminModel.justDirtyOverlords(accessKey), accessKey, grantKeys,
+        return context.adminModel.requirePermissions(context.adminModel.justDirtyOverlords(accessKey), accessKey, grantKeys,
                 Permission.admin.on()).map(apiResponse -> {
 
             return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT);
@@ -142,7 +145,7 @@ public class DnsService {
     }
 
     private Observable<HttpResponse> getEdges(NxId accessKey, Collection<NxId> grantKeys) {
-        return serviceAdminModel.justOverlords(accessKey).map(authorities -> {
+        return context.adminModel.justOverlords(accessKey).map(authorities -> {
             String joinedAuthorityStrings = authorities.stream().map(authority -> authority.toString()).collect(Collectors.joining(";"));
 
             return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK,

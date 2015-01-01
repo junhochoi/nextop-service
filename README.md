@@ -6,7 +6,7 @@ Principles
 
 - Distributed with single masters (hyperlord, overlord)
 - One hyperlord
-- One overlord per access key
+- 1..n overlords per access key
 - Billing and metrics are done per access key
 - Cloud agnostic: masters run in a single data center, but edges are distributed across data centers
 - All edge sessions are double-encrypted. Each edge session has a unique double-encryption keypair. (data is wrapped in the session keypair then in the nextop keypair)
@@ -106,7 +106,7 @@ Flush permissions for "$access-key.nextop.io".
 
 Because the hyperlord is reachable only on the AWS subnet, hyperlord API methods do not require grant keys.
 
-### PUT https://hyperlord.nextop.io/$access-key?set-root-grant-key=$root-grant-key
+### PUT https://hyperlord.nextop.io/$access-key?root-grant-key=$root-grant-key&git-commit-hash=$git-commit-hash
 
 Create an access key and assign the given admin grant key to it. This call blocks until the overlord is active. If the overlord already exists with a different root grant key, signals an error.
 
@@ -117,6 +117,10 @@ Returns the overlord authority.
 Deletes the access key. This sends an email to ops, who has to manually click a link to confirm the deletion. Clicking the link is a hard shutdown. 
 
 The web console should be a layer above this. It should go through an email confirmation process with the account owner, which will then cascade into a hyperlord delete.
+
+### GET https://hyperlord.nextop.io/$access-key/grant-key
+
+Returns the complete set of grant keys and permissions.
 
 
 ## Hyperlord and Overlord

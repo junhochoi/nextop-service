@@ -7,6 +7,10 @@ public enum Permission {
     send,
     subscribe;
 
+    public Mask mask(boolean mask) {
+        return new Mask(this, mask);
+    }
+
     public Mask on() {
         return new Mask(this, true);
     }

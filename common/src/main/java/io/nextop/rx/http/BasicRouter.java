@@ -37,7 +37,7 @@ public class BasicRouter implements Router {
                     return route.responseGenerator.apply(parameters);
                 }
             }
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
             return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST));
         }
         // no route
@@ -128,12 +128,13 @@ public class BasicRouter implements Router {
 
         @Override
         boolean match(int matcherIndex, List<Matcher> matchers, int segmentIndex, List<String> segments, Map<String, List<?>> parameters) {
+            // defer this match (allow a faster check in the tail to fail)
             if (segmentIndex < segments.size() &&
                     next(matcherIndex, matchers, segmentIndex, segments, parameters)) {
                 List<Object> parameter;
                 try {
                     parameter = parser.call(segments.get(segmentIndex));
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     return false;
                 }
                 parameters.put(parameterName, parameter);

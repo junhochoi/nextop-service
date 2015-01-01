@@ -22,6 +22,7 @@ import static io.nextop.service.log.ServiceLog.*;
 /** Model for the service admin (dns, hyperlord) */
 // TODO verify that Observables return SafeSubscriber subscriptions
 public class ServiceAdminModel implements AutoCloseable {
+    private final ServiceContext context;
     private final Scheduler scheduler;
 
     private final Observable<JsonObject> configSource;
@@ -36,7 +37,11 @@ public class ServiceAdminModel implements AutoCloseable {
     private Subscription configSubscription;
 
 
-    public ServiceAdminModel(Scheduler scheduler, Observable<JsonObject> configSource) {
+    public ServiceAdminModel(ServiceContext context, Scheduler scheduler, Observable<JsonObject> configSource) {
+        this.context = context;
+        assert null == context.adminModel;
+        context.adminModel = this;
+
         this.scheduler = scheduler;
         this.configSource = configSource;
 

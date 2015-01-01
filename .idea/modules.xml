@@ -5,7 +5,6 @@
       <module fileurl="file://$PROJECT_DIR$/common/common.iml" filepath="$PROJECT_DIR$/common/common.iml" />
       <module fileurl="file://$PROJECT_DIR$/dns/dns.iml" filepath="$PROJECT_DIR$/dns/dns.iml" />
       <module fileurl="file://$PROJECT_DIR$/hyperlord/hyperlord.iml" filepath="$PROJECT_DIR$/hyperlord/hyperlord.iml" />
-      <module fileurl="file://$PROJECT_DIR$/log/log.iml" filepath="$PROJECT_DIR$/log/log.iml" />
       <module fileurl="file://$PROJECT_DIR$/nextop-service.iml" filepath="$PROJECT_DIR$/nextop-service.iml" />
       <module fileurl="file://$PROJECT_DIR$/overlord/overlord.iml" filepath="$PROJECT_DIR$/overlord/overlord.iml" />
     </modules>
