@@ -21,6 +21,7 @@ import rx.schedulers.Schedulers;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.*;
@@ -58,6 +59,14 @@ public class HyperlordService {
 
             return parameters;
         };
+        Function<Map<String, List<?>>, Map<String, List<?>>> validateConfigMask = parameters -> {
+            FullHttpRequest request = (FullHttpRequest) parameters.get("request").get(0);
+            JsonObject configMaskObject = new JsonParser().parse(new InputStreamReader(
+                    new ByteArrayInputStream(request.content().array()), Charsets.UTF_8)).getAsJsonObject();
+            parameters.put("config-mask", Collections.singletonList(configMaskObject));
+
+            return parameters;
+        };
 
 
         router.add(HttpMethod.PUT, Arrays.asList(accessKeyMatcher), validate.andThen(validateGitCommitHash
@@ -91,12 +100,22 @@ public class HyperlordService {
             NxId accessKey = (NxId) parameters.get("access-key").get(0);
             NxId grantKey = (NxId) parameters.get("grant-key").get(0);
             List<Permission.Mask> masks = (List<Permission.Mask>) parameters.get("permission-mask");
-            return updateGrantKey(accessKey, grantKey, masks);
+            return postGrantKey(accessKey, grantKey, masks);
         }));
         router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "grant-key", grantKeyMatcher), validate.andThen(parameters -> {
             NxId accessKey = (NxId) parameters.get("access-key").get(0);
             NxId grantKey = (NxId) parameters.get("grant-key").get(0);
             return deleteGrantKey(accessKey, grantKey);
+        }));
+        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "config"), validate.andThen(parameters -> {
+            NxId accessKey = (NxId) parameters.get("access-key").get(0);
+            return getConfig(accessKey);
+        }));
+        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "config"), validate.andThen(validateConfigMask
+        ).andThen(parameters -> {
+            NxId accessKey = (NxId) parameters.get("access-key").get(0);
+            JsonObject configMaskObject = (JsonObject) parameters.get("config-mask").get(0);
+            return postConfig(accessKey, configMaskObject);
         }));
 
 
@@ -179,12 +198,22 @@ public class HyperlordService {
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
-    private Observable<HttpResponse> updateGrantKey(NxId accessKey, NxId grantKey, List<Permission.Mask> masks) {
+    private Observable<HttpResponse> postGrantKey(NxId accessKey, NxId grantKey, List<Permission.Mask> masks) {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
     private Observable<HttpResponse> deleteGrantKey(NxId accessKey, NxId grantKey) {
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+    }
+
+    private Observable<HttpResponse> getConfig(NxId accessKey) {
+        // FIXME
+        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+    }
+
+    private Observable<HttpResponse> postConfig(NxId accessKey, JsonObject configMaskObject) {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }

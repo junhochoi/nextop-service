@@ -149,6 +149,16 @@ Requires admin grant key.
 Revoke a grant key.
 
 
+### GET https://$access-key.nextop.io/config
+
+Returns a JSON object with all keys filled.
+
+
+### POST https://$access-key.nextop.io/config
+
+Accepts a JSON object with only the keys to update filled with the new values.
+
+
 ## Overlord
 
 ### GET https://$access-key.nextop.io/metrics
@@ -158,14 +168,6 @@ Requires monitor grant key.
 Returns a JSON object with a snapshot of metrics.
 
 
-### GET https://$access-key.nextop.io/config
-
-Returns a JSON object with all keys filled.
-
-
-### POST https://$access-key.nextop.io/config
-
-Accepts a JSON object with only the keys to update filled with the new values.
 
 
 Grant Key Permissions

@@ -15,10 +15,7 @@ import rx.Scheduler;
 import rx.Subscription;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH;
@@ -146,25 +143,26 @@ public final class NettyServer {
         @Override
         public void channelRead(ChannelHandlerContext context, Object m) throws Exception {
             if (m instanceof HttpRequest) {
-                HttpRequest r = (HttpRequest) m;
+                HttpRequest request = (HttpRequest) m;
 
-                if (is100ContinueExpected(r)) {
+                if (is100ContinueExpected(request)) {
                     context.write(new DefaultFullHttpResponse(HTTP_1_1, CONTINUE));
                 }
 
-                QueryStringDecoder d = new QueryStringDecoder(r.getUri());
-                HttpMethod method = r.getMethod();
+                QueryStringDecoder d = new QueryStringDecoder(request.getUri());
+                HttpMethod method = request.getMethod();
                 List<String> segments = parseSegments(d.path());
                 Map<String, List<?>> parameters = new HashMap<>(d.parameters());
-                drain(router.route(method, segments, parameters), context, isKeepAlive(r));
+                parameters.put("request", Collections.singletonList(request));
+                drain(router.route(method, segments, parameters), context, isKeepAlive(request));
             }
         }
 
 
         @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        public void exceptionCaught(ChannelHandlerContext context, Throwable t) throws Exception {
             // FIXME log
-            ctx.close();
+            context.close();
         }
 
 
