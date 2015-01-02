@@ -8,11 +8,12 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/cli" />
             <option value="$PROJECT_DIR$/common" />
             <option value="$PROJECT_DIR$/dns" />
             <option value="$PROJECT_DIR$/hyperlord" />
-            <option value="$PROJECT_DIR$/log" />
             <option value="$PROJECT_DIR$/overlord" />
+            <option value="$PROJECT_DIR$/schema" />
           </set>
         </option>
       </GradleProjectSettings>

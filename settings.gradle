@@ -8,3 +8,7 @@ include 'dns'
 
 include 'common'
 
+include 'cli'
+
+include 'schema'
+

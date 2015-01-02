@@ -1,6 +1,7 @@
-package io.nextop.service;
+package io.nextop.service.admin;
 
 import com.google.gson.JsonObject;
+import io.nextop.service.*;
 import io.nextop.service.m.Overlord;
 import io.nextop.service.m.OverlordStatus;
 import io.nextop.service.util.DbUtils;
@@ -17,12 +18,10 @@ import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static io.nextop.service.log.ServiceLog.*;
-
 /** Model for the service admin (dns, hyperlord) */
 // TODO verify that Observables return SafeSubscriber subscriptions
-public class ServiceAdminModel implements AutoCloseable {
-    private final ServiceContext context;
+public class AdminModel implements AutoCloseable {
+    private final AdminContext context;
     private final Scheduler scheduler;
 
     private final Observable<JsonObject> configSource;
@@ -37,7 +36,7 @@ public class ServiceAdminModel implements AutoCloseable {
     private Subscription configSubscription;
 
 
-    public ServiceAdminModel(ServiceContext context, Scheduler scheduler, Observable<JsonObject> configSource) {
+    public AdminModel(AdminContext context, Scheduler scheduler, Observable<JsonObject> configSource) {
         this.context = context;
         assert null == context.adminModel;
         context.adminModel = this;
@@ -46,11 +45,13 @@ public class ServiceAdminModel implements AutoCloseable {
         this.configSource = configSource;
 
 
+        // FIXME move to start
+
         configSubscription = configSource.subscribeOn(scheduler
         ).subscribe(
                 (JsonObject configObject) -> {
                     reservationTryCount = configObject.get("reservationTryCount").getAsInt();
-                    log.message("adminModel.config", "reservationTryCount = %d", reservationTryCount);
+                    context.log.message("adminModel.config", "reservationTryCount = %d", reservationTryCount);
                 },
                 (Throwable t) -> {},
                 () -> {}
@@ -61,7 +62,7 @@ public class ServiceAdminModel implements AutoCloseable {
         // FIXME is there a way to implement the pool in RX? seems possible, make a util
         connectionSource = configSource.subscribeOn(scheduler
         ).map((JsonObject configObject) -> {
-            log.message("adminModel.connection.config", "%s", configObject);
+            context.log.message("adminModel.connection.config", "%s", configObject);
 
             String host = configObject.get("mysqlHost").getAsString();
             int port = configObject.get("mysqlPort").getAsInt();
@@ -133,9 +134,9 @@ public class ServiceAdminModel implements AutoCloseable {
 
     /////// PERMISSIONS ///////
 
-    public <T> Observable<T> requirePermissions(Observable<T> source, NxId accessKey, Collection<NxId> grantKeys, Permission.Mask ... permissionMasks) {
+    public <T> Observable<T> requirePermissions(Observable<T> source, NxId accessKey, Collection<NxId> grantKeys, Permission.Mask... permissionMasks) {
         return connectionSource.map((Connection connection) -> {
-            log.message("adminModel.requirePermissions");
+            context.log.message("adminModel.requirePermissions");
 
             try {
                 // from all given grant keys, gather all permission names with value=true
@@ -172,7 +173,7 @@ public class ServiceAdminModel implements AutoCloseable {
                             break;
                         }
                     }
-                    log.message("adminModel.requirePermissions", "pass = %s", pass);
+                    context.log.message("adminModel.requirePermissions", "pass = %s", pass);
                     return pass;
                 } finally {
                     selectPermissionNames.close();

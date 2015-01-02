@@ -1,16 +1,18 @@
-package io.nextop.service;
+package io.nextop.service.admin;
 
+import io.nextop.service.ApiStatus;
+import io.nextop.service.NxId;
 import rx.Observable;
 import rx.Scheduler;
 
-public class ServiceAdminController {
+public class AdminController {
     // FIXME connections to overlords
 
-    private final ServiceContext context;
+    private final AdminContext context;
     private final Scheduler scheduler;
 
 
-    public ServiceAdminController(ServiceContext context, Scheduler scheduler /* FIXME config */) {
+    public AdminController(AdminContext context, Scheduler scheduler /* FIXME config */) {
         this.context = context;
         assert null == context.adminController;
         context.adminController = this;

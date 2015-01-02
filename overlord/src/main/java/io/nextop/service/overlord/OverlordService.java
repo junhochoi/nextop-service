@@ -1,28 +1,44 @@
 package io.nextop.service.overlord;
 
+import com.google.common.base.Charsets;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import io.netty.handler.codec.http.*;
+import io.nextop.rx.http.BasicRouter;
+import io.nextop.rx.http.NettyServer;
+import io.nextop.rx.http.Router;
+import io.nextop.rx.util.ConfigWatcher;
+import io.nextop.service.NxId;
+import io.nextop.service.Permission;
+import io.nextop.service.log.ServiceLog;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import rx.Observable;
+import rx.Scheduler;
+import rx.schedulers.Schedulers;
+
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-// FIXME re-use admin model but use a sqlite db
 // FIXME figure out how to package schema upgades into docker
 // FIXME run upgrades when docker starts (dns, hyperlord, overlord, etc)
 public class OverlordService {
+    private static final ServiceLog log = new ServiceLog();
+
     private final Router router() {
         BasicRouter router = new BasicRouter();
-        Object accessKeyMatcher = BasicRouter.var("access-key", segment -> NxId.valueOf(segment));
         Object grantKeyMatcher = BasicRouter.var("grant-key", segment -> NxId.valueOf(segment));
 
         Function<Map<String, List<?>>, Map<String, List<?>>> validate = parameters -> {
-            return parameters;
-        };
-        Function<Map<String, List<?>>, Map<String, List<?>>> validateGitCommitHash = parameters -> {
-            parameters.put("git-commit-hash", parameters.getOrDefault("git-commit-hash", Collections.emptyList()));
             return parameters;
         };
         Function<Map<String, List<?>>, Map<String, List<?>>> validatePermissionMasks = parameters -> {
@@ -39,91 +55,87 @@ public class OverlordService {
 
             return parameters;
         };
+        Function<Map<String, List<?>>, Map<String, List<?>>> validateConfigMask = parameters -> {
+            FullHttpRequest request = (FullHttpRequest) parameters.get("request").get(0);
+            JsonObject configMaskObject = new JsonParser().parse(new InputStreamReader(
+                    new ByteArrayInputStream(request.content().array()), Charsets.UTF_8)).getAsJsonObject();
+            parameters.put("config-mask", Collections.singletonList(configMaskObject));
 
-        // GET https://$access-key.nextop.io/metrics
-        // GET https://$access-key.nextop.io/config
-        // POST https://$access-key.nextop.io/config
-
-
-        router.add(HttpMethod.PUT, Arrays.asList(accessKeyMatcher), validate.andThen(validateGitCommitHash
-        ).andThen(parameters -> {
-            parameters.put("root-grant-key", ((List<String>) parameters.getOrDefault("root-grant-key", Collections.emptyList()
-            )).stream().map((String grantKeyString) -> NxId.valueOf(grantKeyString)).collect(Collectors.toList()));
             return parameters;
-        }).andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            NxId rootGrantKey = ((List<NxId>) parameters.get("root-grant-key")).get(0);
-            String gitCommitHash = parameters.get("git-commit-hash").get(0).toString();
-            return putAccessKey(accessKey, rootGrantKey, gitCommitHash);
-        }));
-        router.add(HttpMethod.DELETE, Arrays.asList(accessKeyMatcher), validate.andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            return deleteAccessKey(accessKey);
-        }));
-        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "grant-key"), validate.andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            return getGrantKeys(accessKey);
-        }));
-        router.add(HttpMethod.PUT, Arrays.asList(accessKeyMatcher, "grant-key", grantKeyMatcher), validate.andThen(validatePermissionMasks
-        ).andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
-            List<Permission.Mask> masks = (List<Permission.Mask>) parameters.get("permission-mask");
-            return putGrantKey(accessKey, grantKey, masks);
-        }));
-        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "grant-key", grantKeyMatcher), validate.andThen(validatePermissionMasks
-        ).andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
-            List<Permission.Mask> masks = (List<Permission.Mask>) parameters.get("permission-mask");
-            return updateGrantKey(accessKey, grantKey, masks);
-        }));
-        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "grant-key", grantKeyMatcher), validate.andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
-            return deleteGrantKey(accessKey, grantKey);
-        }));
+        };
 
+        router.add(HttpMethod.GET, Arrays.asList("metrics"), validate.andThen(parameters ->
+                getMetrics()));
+        router.add(HttpMethod.PUT, Arrays.asList("grant-key", grantKeyMatcher), validate.andThen(validatePermissionMasks
+        ).andThen(parameters -> {
+            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
+            List<Permission.Mask> masks = (List<Permission.Mask>) parameters.get("permission-mask");
+            return putGrantKey(grantKey, masks);
+        }));
+        router.add(HttpMethod.POST, Arrays.asList("grant-key", grantKeyMatcher), validate.andThen(validatePermissionMasks
+        ).andThen(parameters -> {
+            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
+            List<Permission.Mask> masks = (List<Permission.Mask>) parameters.get("permission-mask");
+            return postGrantKey(grantKey, masks);
+        }));
+        router.add(HttpMethod.DELETE, Arrays.asList("grant-key", grantKeyMatcher), validate.andThen(parameters -> {
+            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
+            return deleteGrantKey(grantKey);
+        }));
+        router.add(HttpMethod.GET, Arrays.asList("config"), validate.andThen(parameters -> {
+            return getConfig();
+        }));
+        router.add(HttpMethod.POST, Arrays.asList("config"), validate.andThen(validateConfigMask
+        ).andThen(parameters -> {
+            JsonObject configMaskObject = (JsonObject) parameters.get("config-mask").get(0);
+            return postConfig(configMaskObject);
+        }));
 
         return router;
     }
 
 
-    private final Scheduler hyperlordScheduler;
+    private final Scheduler overlordScheduler;
     private final Scheduler modelScheduler;
-    private final Scheduler controllerScheduler;
 
     private final ConfigWatcher configWatcher;
     private final NettyServer httpServer;
 
-    private final ServiceContext context;
+    private final OverlordContext context;
+
+    private final Observable<NxId> accessKeySource;
 
 
-    HyperlordService(JsonObject defaultConfigObject, String ... configFiles) {
-        hyperlordScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
-                        new Thread(r, "HyperlordService Worker")
+    OverlordService(JsonObject defaultConfigObject, String ... configFiles) {
+        overlordScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
+                        new Thread(r, "OverlordService Worker")
         ));
         modelScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
-                        new Thread(r, "ServiceAdminModel Worker")
-        ));
-        controllerScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
-                        new Thread(r, "ServiceAdminController Worker")
+                        new Thread(r, "OverlordModel Worker")
         ));
 
-        configWatcher = new ConfigWatcher(hyperlordScheduler, defaultConfigObject, configFiles);
-        httpServer = new NettyServer(hyperlordScheduler, router());
+        configWatcher = new ConfigWatcher(overlordScheduler, defaultConfigObject, configFiles);
+        httpServer = new NettyServer(overlordScheduler, router());
+
+        accessKeySource = configWatcher.getMergedObservable().flatMap(configObject -> {
+            try {
+                return Observable.just(NxId.valueOf(configObject.get("accessKey").getAsString()));
+            } catch (Exception e) {
+                return Observable.<NxId>empty();
+            }
+        });
 
         // CONTEXT
-        context = new ServiceContext();
-        new ServiceAdminModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
-                configObject.get("adminModel").getAsJsonObject()));
-        new ServiceAdminController(context, controllerScheduler);
-
-
+        context = new OverlordContext();
+        // FIXME
+//        new OverlordModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
+//                configObject.get("overlordModel").getAsJsonObject()));
     }
 
 
     public void start()  {
+        configWatcher.start();
+
 
         httpServer.start(configWatcher.getMergedObservable().map(configObject -> {
             NettyServer.Config config = new NettyServer.Config();
@@ -138,38 +150,38 @@ public class OverlordService {
 
     public void stop() {
         httpServer.stop();
+        configWatcher.stop();
     }
 
 
     /////// ROUTES ///////
 
-    private Observable<HttpResponse> putAccessKey(NxId accessKey, NxId rootGrantKey, String gitCommitHash) {
-//        context.adminController.initAccessKey(accessKey, rootGrantKey, gitCommitHash);
+    private Observable<HttpResponse> getMetrics() {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
-    private Observable<HttpResponse> deleteAccessKey(NxId accessKey) {
+    private Observable<HttpResponse> putGrantKey(NxId grantKey, List<Permission.Mask> masks) {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
-    private Observable<HttpResponse> getGrantKeys(NxId accessKey) {
+    private Observable<HttpResponse> postGrantKey(NxId grantKey, List<Permission.Mask> masks) {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
-    private Observable<HttpResponse> putGrantKey(NxId accessKey, NxId grantKey, List<Permission.Mask> masks) {
+    private Observable<HttpResponse> deleteGrantKey(NxId grantKey) {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
-    private Observable<HttpResponse> updateGrantKey(NxId accessKey, NxId grantKey, List<Permission.Mask> masks) {
+    private Observable<HttpResponse> getConfig() {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
-    private Observable<HttpResponse> deleteGrantKey(NxId accessKey, NxId grantKey) {
+    private Observable<HttpResponse> postConfig(JsonObject configObjectMask) {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
@@ -185,8 +197,8 @@ public class OverlordService {
         try {
             main(new GnuParser().parse(options, in));
         } catch (Exception e) {
-            log.unhandled("hyperlord.main", e);
-            new HelpFormatter().printHelp("hyperlord", options);
+            log.unhandled("overlord.main", e);
+            new HelpFormatter().printHelp("overlord", options);
             System.exit(400);
         }
     }
@@ -204,8 +216,8 @@ public class OverlordService {
 
         Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
             if ("start".equals(arg)) {
-                HyperlordService hyperlordService = new HyperlordService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
-                hyperlordService.start();
+                OverlordService overlordService = new OverlordService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
+                overlordService.start();
             } else {
                 throw new IllegalArgumentException();
             }

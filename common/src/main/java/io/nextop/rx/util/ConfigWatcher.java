@@ -19,11 +19,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-import static io.nextop.service.log.ServiceLog.log;
-
-public final class ConfigWatcher implements AutoCloseable {
+public final class ConfigWatcher {
     private final Scheduler scheduler;
+
+    private final JsonObject defaultConfigObject;
     private final File[] files;
+
 
     private final int intervalMs = 1000;
 
@@ -32,7 +33,8 @@ public final class ConfigWatcher implements AutoCloseable {
 
     // INTERNAL SUBSCRIPTIONS
 
-    private final Subscription pollSubscription;
+    @Nullable
+    private Subscription pollSubscription = null;
 
 
 
@@ -43,10 +45,15 @@ public final class ConfigWatcher implements AutoCloseable {
 
     public ConfigWatcher(Scheduler scheduler, JsonObject defaultConfigObject, File ... files) {
         this.scheduler = scheduler;
+        this.defaultConfigObject = defaultConfigObject;
         this.files = files;
 
         mergedSubject = BehaviorSubject.create();
 
+    }
+
+
+    public void start() {
         pollSubscription = scheduler.createWorker().schedulePeriodically(new Action0() {
             int callCount = 0;
 
@@ -56,8 +63,6 @@ public final class ConfigWatcher implements AutoCloseable {
 
             @Override
             public synchronized void call() {
-                log.count("config.watch");
-
                 ++callCount;
                 boolean modified = false;
 
@@ -94,8 +99,7 @@ public final class ConfigWatcher implements AutoCloseable {
         }, 0L, intervalMs, TimeUnit.MILLISECONDS);
     }
 
-    @Override
-    public void close() throws Exception {
+    public void stop(){
         pollSubscription.unsubscribe();
     }
 

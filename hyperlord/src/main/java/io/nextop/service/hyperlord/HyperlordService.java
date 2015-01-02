@@ -4,13 +4,16 @@ package io.nextop.service.hyperlord;
 import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.nextop.rx.http.BasicRouter;
 import io.nextop.rx.http.NettyServer;
 import io.nextop.rx.http.Router;
 import io.nextop.rx.util.ConfigWatcher;
 import io.nextop.service.*;
+import io.nextop.service.admin.AdminContext;
+import io.nextop.service.admin.AdminController;
+import io.nextop.service.admin.AdminModel;
+import io.nextop.service.log.ServiceLog;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -30,9 +33,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.nextop.service.log.ServiceLog.log;
-
 public class HyperlordService {
+    private static final ServiceLog log = new ServiceLog();
+
     private final Router router() {
         BasicRouter router = new BasicRouter();
         Object accessKeyMatcher = BasicRouter.var("access-key", segment -> NxId.valueOf(segment));
@@ -102,7 +105,7 @@ public class HyperlordService {
             List<Permission.Mask> masks = (List<Permission.Mask>) parameters.get("permission-mask");
             return postGrantKey(accessKey, grantKey, masks);
         }));
-        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "grant-key", grantKeyMatcher), validate.andThen(parameters -> {
+        router.add(HttpMethod.DELETE, Arrays.asList(accessKeyMatcher, "grant-key", grantKeyMatcher), validate.andThen(parameters -> {
             NxId accessKey = (NxId) parameters.get("access-key").get(0);
             NxId grantKey = (NxId) parameters.get("grant-key").get(0);
             return deleteGrantKey(accessKey, grantKey);
@@ -130,7 +133,7 @@ public class HyperlordService {
     private final ConfigWatcher configWatcher;
     private final NettyServer httpServer;
 
-    private final ServiceContext context;
+    private final AdminContext context;
 
 
     HyperlordService(JsonObject defaultConfigObject, String ... configFiles) {
@@ -148,16 +151,17 @@ public class HyperlordService {
         httpServer = new NettyServer(hyperlordScheduler, router());
 
         // CONTEXT
-        context = new ServiceContext();
-        new ServiceAdminModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
+        context = new AdminContext();
+        new AdminModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
                 configObject.get("adminModel").getAsJsonObject()));
-        new ServiceAdminController(context, controllerScheduler);
+        new AdminController(context, controllerScheduler);
 
 
     }
 
 
     public void start()  {
+        configWatcher.start();
 
         httpServer.start(configWatcher.getMergedObservable().map(configObject -> {
             NettyServer.Config config = new NettyServer.Config();
@@ -172,6 +176,7 @@ public class HyperlordService {
 
     public void stop() {
         httpServer.stop();
+        configWatcher.stop();
     }
 
 

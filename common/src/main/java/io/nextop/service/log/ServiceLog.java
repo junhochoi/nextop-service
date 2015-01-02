@@ -23,7 +23,7 @@ public final class ServiceLog {
     private final Logger logger = Logger.getLogger("ServiceLog");
 
 
-    private ServiceLog() {
+    public ServiceLog() {
         keyFormat = "%-" + keyWidth + "s";
     }
 
@@ -149,10 +149,4 @@ public final class ServiceLog {
         logger.log(level, String.format(keyFormat + messageFormat, concat(of(key), of(args)).toArray()),
                 t);
     }
-
-
-    /////// SINGLETON ///////
-
-    // FIXME
-    public static final ServiceLog log = new ServiceLog();
 }

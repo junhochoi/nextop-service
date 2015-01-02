@@ -1,9 +1,0 @@
--- prerequisite: root access
-
-CREATE DATABASE service;
-
--- password in 1pass
-CREATE USER 'nextop_service'@'localhost' IDENTIFIED BY PASSWORD '*BF83FBEDBF6118022F374765EF58742F8AC6F46C';
-CREATE USER 'nextop_service'@'%' IDENTIFIED BY PASSWORD '*BF83FBEDBF6118022F374765EF58742F8AC6F46C';
-GRANT DELETE, SELECT, UPDATE, LOCK TABLES ON service.* TO 'nextop_service'@'localhost';
-GRANT DELETE, SELECT, UPDATE, LOCK TABLES ON service.* TO 'nextop_service'@'%';

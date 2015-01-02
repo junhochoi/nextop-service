@@ -122,11 +122,40 @@ The web console should be a layer above this. It should go through an email conf
 
 Returns the complete set of grant keys and permissions.
 
+### PUT https://hyperlord.nextop.io/$access-key/grant-key/$grant-key?$permission-name=$permission-value
 
-## Hyperlord and Overlord
+Create a grant key. Supply one or more permission names. If the grant key already exists with different permissions, signals an error.
 
-All modifications must go through the hyperlord. The hyperlord writes through to the overlords.
+### POST https://hyperlord.nextop.io/$access-key/grant-key/$grant-key?$permission-name=$permission-value
 
+Sets the permissions for the grant key. Supply one or more permission masks. 
+
+### DELETE https://hyperlord.nextop.io/$access-key/grant-key/$grant-key
+
+Revoke a grant key.
+
+### GET https://hyperlord.nextop.io/$access-key/config
+
+Returns a JSON object with all keys filled.
+
+### POST https://hyperlord.nextop.io/$access-key/config
+
+Accepts a JSON object with only the keys to update filled with the new values.
+
+## Overlord
+
+### GET https://$access-key.nextop.io/metrics
+
+Requires monitor grant key.
+
+Returns a JSON object with a snapshot of metrics.
+
+
+## Overlord (To Be Deprecated)
+
+These API methods will eventually be replaced with messages on the control connection.
+
+All modifications must go through the hyperlord. The hyperlord writes through to the overlords. 
 
 ### PUT https://$access-key.nextop.io/grant-key/$grant-key?$permission-name=$permission-value
 
@@ -158,14 +187,6 @@ Returns a JSON object with all keys filled.
 
 Accepts a JSON object with only the keys to update filled with the new values.
 
-
-## Overlord
-
-### GET https://$access-key.nextop.io/metrics
-
-Requires monitor grant key.
-
-Returns a JSON object with a snapshot of metrics.
 
 
 

@@ -4,24 +4,19 @@ package io.nextop.service.dns;
 import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.nextop.rx.http.BasicRouter;
 import io.nextop.rx.http.NettyServer;
 import io.nextop.rx.http.Router;
 import io.nextop.rx.util.ConfigWatcher;
 import io.nextop.service.*;
+import io.nextop.service.admin.AdminContext;
+import io.nextop.service.admin.AdminModel;
+import io.nextop.service.log.ServiceLog;
 import org.apache.commons.cli.*;
 import rx.Observable;
-import rx.Observer;
 import rx.Scheduler;
-import rx.Subscription;
-import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 import javax.annotation.Nullable;
@@ -32,15 +27,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.netty.handler.codec.http.HttpHeaders.Names.*;
-import static io.netty.handler.codec.http.HttpHeaders.*;
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
-import static io.netty.handler.codec.http.HttpVersion.*;
-
-import static io.nextop.service.log.ServiceLog.log;
-
 
 public class DnsService {
+    private static final ServiceLog log = new ServiceLog();
+
+
     private final Router router() {
         BasicRouter router = new BasicRouter();
         Object accessKeyMatcher = BasicRouter.var("access-key", segment -> NxId.valueOf(segment));
@@ -87,7 +78,7 @@ public class DnsService {
     private final ConfigWatcher configWatcher;
     private final NettyServer httpServer;
 
-    private final ServiceContext context;
+    private final AdminContext context;
 
 
     DnsService(JsonObject defaultConfigObject, String ... configFiles) {
@@ -102,25 +93,27 @@ public class DnsService {
         httpServer = new NettyServer(dnsScheduler, router());
 
         // CONTEXT
-        context = new ServiceContext();
-        new ServiceAdminModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
+        context = new AdminContext();
+        context.log = log;
+        new AdminModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
                 configObject.get("adminModel").getAsJsonObject()));
 
     }
 
 
     public void start()  {
+        configWatcher.start();
 
         httpServer.start(configWatcher.getMergedObservable().map(configObject -> {
             NettyServer.Config config = new NettyServer.Config();
             config.httpPort = configObject.get("httpPort").getAsInt();
             return config;
         }));
-
     }
 
     public void stop() {
         httpServer.stop();
+        configWatcher.stop();
     }
 
 

@@ -24,7 +24,6 @@ import static io.netty.handler.codec.http.HttpHeaders.is100ContinueExpected;
 import static io.netty.handler.codec.http.HttpHeaders.isKeepAlive;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONTINUE;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
-import static io.nextop.service.log.ServiceLog.log;
 
 /** Supports {@link ApiStatus} and {@link ApiException} */
 public final class NettyServer {
@@ -207,12 +206,13 @@ public final class NettyServer {
 
 
                 void send(HttpResponse response) {
-                    log.message("dns.send", "%s", response);
-
-                    response.headers().set(CONTENT_TYPE, "text/plain");
-                    if (response instanceof FullHttpResponse) {
+                    if (!response.headers().contains(CONTENT_TYPE)) {
+                        response.headers().set(CONTENT_TYPE, "text/plain");
+                    }
+                    if (!response.headers().contains(CONTENT_LENGTH) && (response instanceof FullHttpResponse)) {
                         response.headers().set(CONTENT_LENGTH, ((FullHttpResponse) response).content().readableBytes());
                     }
+
                     if (keepAlive) {
                         response.headers().set(CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
                         context.write(response);
