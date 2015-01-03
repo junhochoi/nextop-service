@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 /** Model for the service admin (dns, hyperlord) */
 // TODO verify that Observables return SafeSubscriber subscriptions
-public class AdminModel implements AutoCloseable {
+public class AdminModel {
     private final AdminContext context;
     private final Scheduler scheduler;
 
@@ -43,19 +43,6 @@ public class AdminModel implements AutoCloseable {
 
         this.scheduler = scheduler;
         this.configSource = configSource;
-
-
-        // FIXME move to start
-
-        configSubscription = configSource.subscribeOn(scheduler
-        ).subscribe(
-                (JsonObject configObject) -> {
-                    reservationTryCount = configObject.get("reservationTryCount").getAsInt();
-                    context.log.message("adminModel.config", "reservationTryCount = %d", reservationTryCount);
-                },
-                (Throwable t) -> {},
-                () -> {}
-        );
 
 
         // FIXME pool this
@@ -126,8 +113,25 @@ public class AdminModel implements AutoCloseable {
         }).first();
     }
 
-    @Override
-    public void close() throws Exception {
+
+    public void start() {
+
+        // FIXME move to start
+
+        configSubscription = configSource.subscribeOn(scheduler
+        ).subscribe(
+                (JsonObject configObject) -> {
+                    reservationTryCount = configObject.get("reservationTryCount").getAsInt();
+                    context.log.message("adminModel.config", "reservationTryCount = %d", reservationTryCount);
+                },
+                (Throwable t) -> {},
+                () -> {}
+        );
+
+
+    }
+
+    public void stop() {
         configSubscription.unsubscribe();
     }
 
@@ -195,8 +199,13 @@ public class AdminModel implements AutoCloseable {
 
     /** just* API methods emit one value then call onComplete */
 
+    // FIXME justCreateAccessKey
+    // FIXME justMarkAccessKeyTerminating
+    // FIXME justRemoveAccessKey
+    // FIXME justMarkOverlordTerminating(localKey)
+    //
 
-    public Observable<Overlord> justReserveOverlord(NxId accessKey) {
+    public Observable<Overlord> justCreateOverlord(NxId accessKey) {
         return connectionSource.map((Connection connection) -> {
             NxId localKey = NxId.create();
 
@@ -274,7 +283,7 @@ public class AdminModel implements AutoCloseable {
         }).take(1);
     }
 
-    public Observable<ApiStatus> justReleaseOverlordAuthority(Authority authority) {
+    public Observable<ApiStatus> justRemoveOverlord(Authority authority) {
         return connectionSource.map((Connection connection) -> {
             // note: this does not delete from the status since it's easier to manage that synchronously with the status checks
             try {

@@ -251,12 +251,15 @@ public class HyperlordService {
 
         @Nullable String[] configFiles = cl.getOptionValues('c');
 
+        HyperlordService hyperlordService = new HyperlordService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
+
         Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
-            if ("start".equals(arg)) {
-                HyperlordService hyperlordService = new HyperlordService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
-                hyperlordService.start();
-            } else {
-                throw new IllegalArgumentException();
+            switch (arg) {
+                case "start":
+                    hyperlordService.start();
+                    break;
+                default:
+                    throw new IllegalArgumentException();
             }
         });
     }

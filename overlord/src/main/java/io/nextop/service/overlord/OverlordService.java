@@ -192,6 +192,7 @@ public class OverlordService {
     public static void main(String[] in) {
         Options options = new Options();
         options.addOption("c", "configFile", true, "JSON config file");
+        // FIXME command line option for access key
 
         CommandLine cl;
         try {
@@ -214,12 +215,15 @@ public class OverlordService {
 
         @Nullable String[] configFiles = cl.getOptionValues('c');
 
+        OverlordService overlordService = new OverlordService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
+
         Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
-            if ("start".equals(arg)) {
-                OverlordService overlordService = new OverlordService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
-                overlordService.start();
-            } else {
-                throw new IllegalArgumentException();
+            switch (arg) {
+                case "start":
+                    overlordService.start();
+                    break;
+                default:
+                    throw new IllegalArgumentException();
             }
         });
     }

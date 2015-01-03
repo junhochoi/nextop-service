@@ -14,4 +14,19 @@ public final class AdminContext {
 
     @Nullable
     public AdminController adminController = null;
+
+
+    public void start() {
+        if (null != adminModel) {
+            adminModel.start();
+        }
+        // FIXME controller
+    }
+
+    public void stop() {
+        // FIXME controller
+        if (null != adminModel) {
+            adminModel.stop();
+        }
+    }
 }

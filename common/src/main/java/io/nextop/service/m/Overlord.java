@@ -11,5 +11,8 @@ public class Overlord {
     public NxId localKey;
 
     @Nullable
+    public Cloud cloud = null;
+
+    @Nullable
     public OverlordStatus status = null;
 }

@@ -44,6 +44,7 @@ public class AdminController {
     // FIXME private observable to shut down an overlord and merge its connections into another overlord
 
 
+    // FIXME scaler for an access key, ensures overlords for the access key are active
 
 
 }

@@ -185,12 +185,15 @@ public class DnsService {
 
         @Nullable String[] configFiles = cl.getOptionValues('c');
 
+        DnsService dnsService = new DnsService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
+
         Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
-            if ("start".equals(arg)) {
-                DnsService dnsService = new DnsService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
-                dnsService.start();
-            } else {
-                throw new IllegalArgumentException();
+            switch (arg) {
+                case "start":
+                    dnsService.start();
+                    break;
+                default:
+                    throw new IllegalArgumentException();
             }
         });
     }

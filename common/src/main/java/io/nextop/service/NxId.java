@@ -62,7 +62,7 @@ public final class NxId {
     public String toString() {
         CharBuffer cb = CharBuffer.allocate(64);
         for (byte b : bytes) {
-            cb.put(byteToHex[b]);
+            cb.put(byteToHex[0xFF & b]);
         }
         return new String(cb.array());
     }
