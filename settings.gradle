@@ -12,3 +12,5 @@ include 'cli'
 
 include 'schema'
 
+include 'schema'
+

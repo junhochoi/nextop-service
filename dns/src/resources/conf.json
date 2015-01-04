@@ -1,5 +1,5 @@
 {
-  "httpPort": 8020,
+  "httpPort": 2778,
   "adminModel": {
     "mysqlHost": "localhost",
     "mysqlPort": 3306,

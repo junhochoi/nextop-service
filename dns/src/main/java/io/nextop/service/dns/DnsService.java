@@ -102,6 +102,7 @@ public class DnsService {
 
 
     public void start()  {
+        context.start();
         configWatcher.start();
 
         httpServer.start(configWatcher.getMergedObservable().map(configObject -> {
@@ -114,6 +115,7 @@ public class DnsService {
     public void stop() {
         httpServer.stop();
         configWatcher.stop();
+        context.stop();
     }
 
 

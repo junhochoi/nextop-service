@@ -16,6 +16,7 @@ import rx.Subscription;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.logging.Logger;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH;
@@ -27,6 +28,8 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /** Supports {@link ApiStatus} and {@link ApiException} */
 public final class NettyServer {
+    private static final Logger log = Logger.getGlobal();
+
     public static final class Config {
         public int httpPort = -1;
         // FIXME httpsPort
@@ -75,6 +78,7 @@ public final class NettyServer {
                         .childHandler(new HttpServerInitializer());
 
                 channel = b.bind(config.httpPort).syncUninterruptibly().channel();
+                log.info(String.format("http listening on port %d", config.httpPort));
             }
             @Override
             public void onCompleted() {
