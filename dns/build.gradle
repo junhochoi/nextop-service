@@ -49,10 +49,11 @@ dependencies {
 }
 
 docker {
-    group = System.getenv("NEXTOP_DOCKER_GROUP")
-    version = org.ajoberstar.grgit.Grgit.open(project.file('..')).head().id.substring(0, 12) + '-' + System.getenv("NEXTOP_SERVICE_DOCKER_BASE_TAG")
-    maintainer = System.getenv("NEXTOP_DOCKER_MAINTAINER")
-    baseImage System.getenv("NEXTOP_SERVICE_DOCKER_BASE_IMAGE")
+    group = System.getenv('NEXTOP_DOCKER_GROUP')
+    version = System.getenv('NEXTOP_SERVICE_DOCKER_BASE_TAG') + '-' +
+            org.ajoberstar.grgit.Grgit.open(project.file('..')).head().id.substring(0, 12)
+    maintainer = System.getenv('NEXTOP_DOCKER_MAINTAINER')
+    baseImage System.getenv('NEXTOP_SERVICE_DOCKER_BASE_IMAGE')
 }
 
 
