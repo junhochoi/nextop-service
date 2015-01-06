@@ -6,7 +6,7 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 version = '1.0-SNAPSHOT'
 
-mainClassName = "io.nextop.service.cli.Nx"
+mainClassName = "io.nextop.service.nx.Nx"
 applicationDefaultJvmArgs = []
 
 sourceSets {
@@ -39,7 +39,7 @@ buildscript {
 
 dependencies {
     compile project(':common')
-    compile group: 'commons-cli', name: 'commons-cli', version: '1.2'
+    compile group: 'commons-nx', name: 'commons-nx', version: '1.2'
     compile group: 'io.reactivex', name: 'rxjava', version: '1.0.3'
     compile group: 'com.google.code.gson', name: 'gson', version: '2.3.1'
     compile group: 'io.netty', name: 'netty-all', version: '5.0.0.Alpha1'

@@ -1,9 +1,8 @@
-package io.nextop.service.cli;
+package io.nextop.service.nx;
 
 import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.nextop.rx.http.NettyServer;
 import io.nextop.rx.util.ConfigWatcher;
 import io.nextop.service.Authority;
 import io.nextop.service.NxId;

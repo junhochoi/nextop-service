@@ -1,4 +1,4 @@
-package io.nextop.service;
+package io.nextop;
 
 import javax.annotation.Nullable;
 

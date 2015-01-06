@@ -1,0 +1,134 @@
+package io.nextop.rx.util;
+
+import rx.Observable;
+import rx.Observer;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.functions.Action1;
+import rx.functions.Func0;
+import rx.functions.Func1;
+import rx.observers.Subscribers;
+import rx.subscriptions.Subscriptions;
+
+import javax.annotation.Nullable;
+import java.util.*;
+
+public class FixedPool<T> implements AutoCloseable {
+    private final int maxSize;
+    private final Func0<T> source;
+    private final Action1<T> sink;
+    private final Func1<T, Boolean> verifier;
+
+    private int size;
+    private int head;
+    private SortedMap<Integer, Subscriber<? super T>> pending;
+    private Queue<T> values;
+
+
+    public FixedPool(int maxSize, Func0<T> source, Action1<T> sink, Func1<T, Boolean> verifier) {
+        this.maxSize = maxSize;
+        this.source = source;
+        this.sink = sink;
+        this.verifier = verifier;
+
+        size = 0;
+        head = 0;
+        pending = new TreeMap<>();
+        values = new LinkedList<>();
+    }
+
+
+    // important: this blocks until all subscriptions are fulfilled
+    @Override
+    public void close() {
+        synchronized (this) {
+            // wait for all pending subscribers to empty
+            while (0 < pending.size()) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
+
+            // wait for all subscriptions to close
+            while (0 < size) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
+
+            for (T value; null != (value = values.poll()); ) {
+                sink.call(value);
+                --size;
+            }
+            assert 0 == size;
+        }
+    }
+
+    private void receive(Subscriber<? super T> subscriber) {
+        @Nullable T value;
+        synchronized (this) {
+            while (null != (value = values.poll()) && !verifier.call(value)) {
+                sink.call(value);
+                --size;
+            }
+            if (null == value && size < maxSize) {
+                value = source.call();
+                assert verifier.call(value);
+                ++size;
+            }
+            if (null == value) {
+                int index = head++;
+                pending.put(index, subscriber);
+                subscriber.add(Subscriptions.create(() -> {
+                    synchronized (this) {
+                        pending.remove(index);
+                    }
+                }));
+            }
+            notifyAll();
+        }
+        if (null != value) {
+            push(subscriber, value);
+        }
+    }
+    private void push(T value) {
+        @Nullable Subscriber subscriber = null;
+        synchronized (this) {
+            while (!pending.isEmpty()
+                    && null != (subscriber = pending.remove(pending.firstKey()))
+                    && subscriber.isUnsubscribed()) {
+                subscriber = null;
+            }
+            if (null == subscriber) {
+                if (verifier.call(value)) {
+                    values.add(value);
+                } else {
+                    sink.call(value);
+                    --size;
+                }
+            }
+            notifyAll();
+        }
+        if (null != subscriber) {
+            push(subscriber, value);
+        }
+    }
+    private void push(Subscriber<? super T> subscriber, T value) {
+        subscriber.add(Subscriptions.create(() -> {
+            push(value);
+        }));
+        subscriber.onNext(value);
+        subscriber.onCompleted();
+    }
+
+
+    public Observable<T> getSingleObservable() {
+        return Observable.create(subscriber -> {
+            receive(subscriber);
+        });
+    }
+}

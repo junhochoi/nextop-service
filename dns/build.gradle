@@ -1,10 +1,4 @@
 apply plugin: 'java'
-apply plugin:'application'
-apply plugin: 'docker'
-
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
-version = '1.0-SNAPSHOT'
 
 mainClassName = "io.nextop.service.dns.DnsService"
 applicationDefaultJvmArgs = []
@@ -20,48 +14,7 @@ sourceSets {
     }
 }
 
-repositories {
-    maven {
-        url "https://repository.apache.org"
-    }
-    mavenCentral()
-}
-
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'se.transmode.gradle:gradle-docker:1.2'
-        classpath 'org.ajoberstar:gradle-git:0.8.0'
-    }
-}
-
 dependencies {
     compile project(':common')
     compile project(':schema')
-    compile group: 'commons-cli', name: 'commons-cli', version: '1.2'
-    compile group: 'io.reactivex', name: 'rxjava', version: '1.0.3'
-    compile group: 'com.google.code.gson', name: 'gson', version: '2.3.1'
-    compile group: 'io.netty', name: 'netty-all', version: '5.0.0.Alpha1'
-    compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.0'
-    testCompile group: 'junit', name: 'junit', version: '4.11'
-}
-
-docker {
-    group = System.getenv('NEXTOP_DOCKER_GROUP')
-    version = System.getenv('NEXTOP_SERVICE_DOCKER_BASE_TAG') + '-' +
-            org.ajoberstar.grgit.Grgit.open(project.file('..')).head().id.substring(0, 12)
-    maintainer = System.getenv('NEXTOP_DOCKER_MAINTAINER')
-    baseImage System.getenv('NEXTOP_SERVICE_DOCKER_BASE_IMAGE')
-}
-
-
-/////// APPLICATION ///////
-
-/* run -Pcl="[...]" */
-run {
-    if (project.hasProperty('cl')) {
-        args Eval.me(cl)
-    }
 }

@@ -1,14 +1,14 @@
 package io.nextop.rx.http;
 
-import com.google.gson.JsonObject;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
-import io.nextop.service.ApiException;
-import io.nextop.service.ApiStatus;
+import io.nextop.ApiComponent;
+import io.nextop.ApiException;
+import io.nextop.ApiStatus;
 import rx.Observable;
 import rx.Observer;
 import rx.Scheduler;
@@ -27,7 +27,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONTINUE;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /** Supports {@link ApiStatus} and {@link ApiException} */
-public final class NettyServer {
+public final class NettyServer extends ApiComponent.Base {
     private static final Logger log = Logger.getGlobal();
 
     public static final class Config {
@@ -38,24 +38,32 @@ public final class NettyServer {
 
     private final Scheduler scheduler;
     private final Router router;
+    private final Observable<Config> configSource;
 
 
     // INTERNAL SUBSCRIPTIONS
 
     @Nullable
-    private Subscription configSubscription = null;
+    private Subscription managerSubscription = null;
 
 
-    public NettyServer(Scheduler scheduler, Router router) {
+    public NettyServer(Scheduler scheduler, Router router, Observable<Config> configSource) {
         this.scheduler = scheduler;
         this.router = router;
+        this.configSource = configSource;
+
+        init = ApiComponent.layerInit(Arrays.asList(),
+                () -> {
+                    // FIXME take(1)
+                    managerSubscription = configSource.subscribe(nettyManager());
+                },
+                () -> {
+                    managerSubscription.unsubscribe();
+                });
     }
 
-
-
-    public void start(Observable<Config> configSource) {
-        configSource.subscribeOn(scheduler
-        ).subscribe(new Observer<Config>() {
+    private Observer<Config> nettyManager() {
+        return new Observer<Config>() {
             @Nullable EventLoopGroup bossGroup = null;
             @Nullable EventLoopGroup workerGroup = null;
             @Nullable Channel channel = null;
@@ -90,7 +98,7 @@ public final class NettyServer {
             }
 
 
-            void close() {
+            private void close() {
                 if (null != channel) {
                     channel.close();
                     channel = null;
@@ -106,12 +114,10 @@ public final class NettyServer {
 
 
             }
-        });
+        };
     }
 
-    public void stop() {
-        // FIXME
-    }
+
 
 
 

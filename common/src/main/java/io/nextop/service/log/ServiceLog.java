@@ -1,5 +1,7 @@
 package io.nextop.service.log;
 
+import io.nextop.ApiComponent;
+import io.nextop.ApiContainer;
 import rx.functions.Func0;
 
 import java.util.concurrent.Callable;
@@ -9,7 +11,10 @@ import java.util.logging.Logger;
 
 import static java.util.stream.Stream.*;
 
-public final class ServiceLog {
+public final class ServiceLog extends ApiComponent.Base {
+    // FIXME config for remote logging
+
+
     private final Level defaultLevel = Level.INFO;
     private final Level handledLevel = Level.WARNING;
     private final Level unhandledLevel = Level.SEVERE;

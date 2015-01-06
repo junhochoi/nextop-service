@@ -4,10 +4,9 @@ import javax.annotation.Nullable;
 
 public class OverlordStatus {
     @Nullable
-    public String gitCommitHash = null;
-
-    @Nullable
-    public String deepMd5 = null;
+    public String packageTag = null;
 
     public boolean monitorUp = false;
+
+    public boolean terminating = false;
 }

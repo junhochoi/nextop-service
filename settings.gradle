@@ -8,7 +8,7 @@ include 'dns'
 
 include 'common'
 
-include 'cli'
+include 'nx'
 
 include 'schema'
 

@@ -5,6 +5,7 @@ import com.google.common.io.Files;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.nextop.ApiComponent;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
@@ -19,14 +20,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-public final class ConfigWatcher {
+public final class ConfigWatcher extends ApiComponent.Base {
     private final Scheduler scheduler;
 
     private final JsonObject defaultConfigObject;
     private final File[] files;
 
 
-    private final int intervalMs = 1000;
+    private final long intervalMs = TimeUnit.MINUTES.toMillis(1);
 
     private final BehaviorSubject<JsonObject> mergedSubject;
 
@@ -50,11 +51,18 @@ public final class ConfigWatcher {
 
         mergedSubject = BehaviorSubject.create();
 
+        init = ApiComponent.layerInit(Arrays.asList(),
+                () -> {
+                    pollSubscription = scheduler.createWorker().schedulePeriodically(poller(),
+                            0L, intervalMs, TimeUnit.MILLISECONDS);
+                },
+                () -> {
+                    pollSubscription.unsubscribe();
+                });
     }
 
-
-    public void start() {
-        pollSubscription = scheduler.createWorker().schedulePeriodically(new Action0() {
+    private Action0 poller() {
+        return new Action0() {
             int callCount = 0;
 
             final int n = files.length;
@@ -96,11 +104,7 @@ public final class ConfigWatcher {
                     mergedSubject.onNext(mergedObject);
                 }
             }
-        }, 0L, intervalMs, TimeUnit.MILLISECONDS);
-    }
-
-    public void stop(){
-        pollSubscription.unsubscribe();
+        };
     }
 
 
