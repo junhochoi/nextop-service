@@ -212,7 +212,7 @@ public class DnsService extends ApiComponent.Base {
     }
     private static JsonObject getDefaultConfigObject() throws IOException {
         // extract the default (bundled) config object
-        Reader r = new BufferedReader(new InputStreamReader(ClassLoader.getSystemClassLoader().getResourceAsStream("conf.json"), Charsets.UTF_8));
+        Reader r = new BufferedReader(new InputStreamReader(ClassLoader.getSystemClassLoader().getResourceAsStream("local.conf.json"), Charsets.UTF_8));
         try {
             return new JsonParser().parse(r).getAsJsonObject();
         } finally {
