@@ -1,4 +1,4 @@
-package io.nextop.service.util;
+package io.nextop.util;
 
 import org.apache.commons.cli.CommandLine;
 

@@ -1,16 +1,23 @@
 package io.nextop.service.admin;
 
 import io.nextop.ApiComponent;
-import io.nextop.ApiStatus;
+import io.nextop.db.DataSourceProvider;
 import io.nextop.service.log.ServiceLog;
-import rx.Observable;
+import rx.Scheduler;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class AdminContext implements ApiComponent {
 
+    public Scheduler scheduler;
+
     @Nullable
     public ServiceLog log = null;
+
+    @Nullable
+    public DataSourceProvider dataSourceProvider = null;
 
     @Nullable
     public AdminModel adminModel = null;
@@ -20,20 +27,20 @@ public final class AdminContext implements ApiComponent {
 
 
     @Override
-    public Observable<ApiStatus> init() {
-        Observable<ApiStatus> init = Observable.empty();
+    public Init init() {
+        List<Init> inits = new ArrayList<Init>(4);
         if (null != log) {
-            // FIXME layer
-            init = Observable.concat(init, log.init());
+            inits.add(log.init());
+        }
+        if (null != dataSourceProvider) {
+            inits.add(dataSourceProvider.init());
         }
         if (null != adminModel) {
-            // FIXME layer
-            init = Observable.concat(init, adminModel.init());
+            inits.add(adminModel.init());
         }
         if (null != adminController) {
-            // FIXME layer
-            init = Observable.concat(init, adminController.init());
+            inits.add(adminController.init());
         }
-        return init;
+        return ApiComponent.layerInit(inits);
     }
 }

@@ -5,10 +5,10 @@ import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.netty.handler.codec.http.*;
-import io.nextop.rx.http.BasicRouter;
-import io.nextop.rx.http.NettyServer;
-import io.nextop.rx.http.Router;
-import io.nextop.rx.util.ConfigWatcher;
+import io.nextop.http.BasicRouter;
+import io.nextop.http.NettyHttpServer;
+import io.nextop.http.Router;
+import io.nextop.util.ConfigWatcher;
 import io.nextop.service.*;
 import io.nextop.service.admin.AdminContext;
 import io.nextop.service.admin.AdminController;
@@ -131,7 +131,7 @@ public class HyperlordService {
     private final Scheduler controllerScheduler;
 
     private final ConfigWatcher configWatcher;
-    private final NettyServer httpServer;
+    private final NettyHttpServer httpServer;
 
     private final AdminContext context;
 
@@ -148,7 +148,7 @@ public class HyperlordService {
         ));
 
         configWatcher = new ConfigWatcher(hyperlordScheduler, defaultConfigObject, configFiles);
-        httpServer = new NettyServer(hyperlordScheduler, router());
+        httpServer = new NettyHttpServer(hyperlordScheduler, router());
 
         // CONTEXT
         context = new AdminContext();
@@ -164,7 +164,7 @@ public class HyperlordService {
         configWatcher.start();
 
         httpServer.start(configWatcher.getMergedObservable().map(configObject -> {
-            NettyServer.Config config = new NettyServer.Config();
+            NettyHttpServer.Config config = new NettyHttpServer.Config();
             config.httpPort = configObject.get("httpPort").getAsInt();
             return config;
         }));

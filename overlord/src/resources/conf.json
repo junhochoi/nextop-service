@@ -1,12 +1,8 @@
 {
-  "httpPort": 2777,
-  "adminModel": {
-    "mysqlHost": "localhost",
-    "mysqlPort": 3306,
-    "mysqlDb": "service",
-    "mysqlUser": "root",
-    "mysqlPassword" : "",
-
-    "reservationTryCount": 4
+  "http": {
+    "port": 17000
+  },
+  "nextop": {
+    "port": 27000
   }
 }

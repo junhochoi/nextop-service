@@ -3,7 +3,7 @@ package io.nextop.service.nx;
 import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.nextop.rx.util.ConfigWatcher;
+import io.nextop.util.ConfigWatcher;
 import io.nextop.service.Authority;
 import io.nextop.service.NxId;
 import io.nextop.service.admin.AdminContext;
@@ -25,7 +25,7 @@ import java.io.Reader;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
-import static io.nextop.service.util.ClUtils.*;
+import static io.nextop.util.ClUtils.*;
 
 public final class Nx {
     private static final ServiceLog log = new ServiceLog();

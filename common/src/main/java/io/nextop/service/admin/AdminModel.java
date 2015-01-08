@@ -3,13 +3,11 @@ package io.nextop.service.admin;
 import io.nextop.ApiComponent;
 import io.nextop.ApiException;
 import io.nextop.ApiStatus;
-import io.nextop.rx.db.DataSourceProvider;
 import io.nextop.service.*;
 import io.nextop.service.m.Overlord;
 import io.nextop.service.m.OverlordStatus;
-import io.nextop.service.util.DbUtils;
+import io.nextop.util.DbUtils;
 import rx.Observable;
-import rx.Scheduler;
 
 import java.sql.*;
 import java.util.*;
@@ -19,24 +17,18 @@ import java.util.stream.Collectors;
 // TODO verify that Observables return SafeSubscriber subscriptions
 public class AdminModel extends ApiComponent.Base {
     private final AdminContext context;
-    private final Scheduler scheduler;
-    private final DataSourceProvider dataSourceProvider;
 
 
-    public AdminModel(AdminContext context, Scheduler scheduler, DataSourceProvider dataSourceProvider) {
+    public AdminModel(AdminContext context) {
         this.context = context;
 
-        this.scheduler = scheduler;
-        this.dataSourceProvider = dataSourceProvider;
-
-        init = dataSourceProvider.init();
     }
 
 
     /////// PERMISSIONS ///////
 
     public <T> Observable<T> requirePermissions(Observable<T> source, NxId accessKey, Collection<NxId> grantKeys, Permission.Mask... permissionMasks) {
-        return dataSourceProvider.justConnection().map((Connection connection) -> {
+        return context.dataSourceProvider.withConnection().map((Connection connection) -> {
             context.log.message("adminModel.requirePermissions");
 
             try {
@@ -103,7 +95,7 @@ public class AdminModel extends ApiComponent.Base {
     //
 
     public Observable<Overlord> justCreateOverlord(NxId accessKey) {
-        return dataSourceProvider.justConnection().map((Connection connection) -> {
+        return context.dataSourceProvider.withConnection().map((Connection connection) -> {
             NxId localKey = NxId.create();
 
             try {
@@ -179,7 +171,7 @@ public class AdminModel extends ApiComponent.Base {
     }
 
     public Observable<ApiStatus> justRemoveOverlord(Authority authority) {
-        return dataSourceProvider.justConnection().map((Connection connection) -> {
+        return context.dataSourceProvider.withConnection().map((Connection connection) -> {
             // note: this does not delete from the status since it's easier to manage that synchronously with the status checks
             try {
                 PreparedStatement selectLocalKey = connection.prepareStatement("UPDATE Overlord" +
@@ -207,7 +199,7 @@ public class AdminModel extends ApiComponent.Base {
     // FIXME overlord status is used to maintain reservations
 
     public Observable<Collection<Overlord>> justOverlords(NxId accessKey) {
-        return dataSourceProvider.justConnection().map((Connection connection) -> {
+        return context.dataSourceProvider.withConnection().map((Connection connection) -> {
             Collection<Overlord> overlords = new ArrayList<Overlord>(16);
             try {
                 PreparedStatement selectOverlord = connection.prepareStatement("SELECT Overlord.public_host, Overlord.port, Overlord.local_key," +
@@ -255,7 +247,7 @@ public class AdminModel extends ApiComponent.Base {
 
     // omitted permissions are not changed
     public Observable<ApiStatus> justGrant(NxId accessKey, NxId grantKey, Permission.Mask ... permissionMasks) {
-        return dataSourceProvider.justConnection().map((Connection connection) -> {
+        return context.dataSourceProvider.withConnection().map((Connection connection) -> {
             try {
                 connection.setAutoCommit(false);
                 try {

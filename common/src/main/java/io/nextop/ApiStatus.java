@@ -53,4 +53,9 @@ public final class ApiStatus {
         this.code = code;
         this.reason = reason;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%d %s", code, reason);
+    }
 }

@@ -1,7 +1,6 @@
-package io.nextop.rx.http;
+package io.nextop.http;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import io.netty.handler.codec.http.*;
 import rx.Observable;

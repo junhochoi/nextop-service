@@ -3,14 +3,22 @@ package io.nextop.service.overlord;
 import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
-import io.nextop.rx.http.BasicRouter;
-import io.nextop.rx.http.NettyServer;
-import io.nextop.rx.http.Router;
-import io.nextop.rx.util.ConfigWatcher;
+import io.nextop.ApiComponent;
+import io.nextop.ApiContainer;
+import io.nextop.db.DataSourceProvider;
+import io.nextop.http.BasicRouter;
+import io.nextop.http.NettyHttpServer;
+import io.nextop.http.Router;
+import io.nextop.rx.MoreRxOperations;
+import io.nextop.service.admin.AdminContext;
+import io.nextop.service.admin.AdminModel;
+import io.nextop.util.ConfigWatcher;
 import io.nextop.service.NxId;
 import io.nextop.service.Permission;
 import io.nextop.service.log.ServiceLog;
+import io.nextop.util.NettyUtils;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -27,12 +35,15 @@ import java.io.Reader;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 // FIXME figure out how to package schema upgades into docker
 // FIXME run upgrades when docker starts (dns, hyperlord, overlord, etc)
-public class OverlordService {
-    private static final ServiceLog log = new ServiceLog();
+public class OverlordService extends ApiComponent.Base {
+    private static final Logger localLog = Logger.getGlobal();
+
 
     private final Router router() {
         BasicRouter router = new BasicRouter();
@@ -95,70 +106,48 @@ public class OverlordService {
     }
 
 
-    private final Scheduler overlordScheduler;
+    private final Scheduler apiScheduler;
     private final Scheduler modelScheduler;
 
     private final ConfigWatcher configWatcher;
-    private final NettyServer httpServer;
+    private final NettyHttpServer httpServer;
 
-    private final OverlordContext context;
+    private final OverlordMetrics metrics;
 
-    private final Observable<NxId> accessKeySource;
+
 
 
     OverlordService(JsonObject defaultConfigObject, String ... configFiles) {
-        overlordScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
+        apiScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
                         new Thread(r, "OverlordService Worker")
         ));
         modelScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
                         new Thread(r, "OverlordModel Worker")
         ));
 
-        configWatcher = new ConfigWatcher(overlordScheduler, defaultConfigObject, configFiles);
-        httpServer = new NettyServer(overlordScheduler, router());
+        configWatcher = new ConfigWatcher(modelScheduler, defaultConfigObject, configFiles);
+        httpServer = new NettyHttpServer(apiScheduler, router(),
+                configWatcher.getMergedObservable().map(configObject -> {
+                    JsonObject httpConfigObject = configObject.get("http").getAsJsonObject();
 
-        accessKeySource = configWatcher.getMergedObservable().flatMap(configObject -> {
-            try {
-                return Observable.just(NxId.valueOf(configObject.get("accessKey").getAsString()));
-            } catch (Exception e) {
-                return Observable.<NxId>empty();
-            }
-        });
+                    // FIXME fix the parsing here
+                    NettyHttpServer.Config config = new NettyHttpServer.Config();
+                    config.httpPort = httpConfigObject.get("port").getAsInt();
+                    return config;
+                }));
 
-        // CONTEXT
-        context = new OverlordContext();
-        // FIXME
-//        new OverlordModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
-//                configObject.get("overlordModel").getAsJsonObject()));
+        metrics = new OverlordMetrics();
+
+        init = ApiComponent.layerInit(configWatcher.init(),
+                httpServer.init());
     }
 
-
-    public void start()  {
-        configWatcher.start();
-
-
-        httpServer.start(configWatcher.getMergedObservable().map(configObject -> {
-            NettyServer.Config config = new NettyServer.Config();
-            config.httpPort = configObject.get("httpPort").getAsInt();
-            return config;
-        }));
-
-
-        // FIXME start monitoring up overlords
-//        context.adminController.startMonitor()
-    }
-
-    public void stop() {
-        httpServer.stop();
-        configWatcher.stop();
-    }
 
 
     /////// ROUTES ///////
 
     private Observable<HttpResponse> getMetrics() {
-        // FIXME
-        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+        return Observable.just(NettyUtils.jsonResponse(metrics.getSnapshot().toJson()));
     }
 
     private Observable<HttpResponse> putGrantKey(NxId grantKey, List<Permission.Mask> masks) {
@@ -192,13 +181,19 @@ public class OverlordService {
     public static void main(String[] in) {
         Options options = new Options();
         options.addOption("c", "configFile", true, "JSON config file");
+        options.addOption("a", "accessKey", true, "Access key");
+        options.addOption("P", "port", true, "Port");
+
+        // FIXME merge the access key and port into the default config
+
         // FIXME command line option for access key
 
         CommandLine cl;
         try {
             main(new GnuParser().parse(options, in));
         } catch (Exception e) {
-            log.unhandled("overlord.main", e);
+            // FIXME log
+//            lopcal.unhandled("overlord.main", e);
             new HelpFormatter().printHelp("overlord", options);
             System.exit(400);
         }
@@ -220,7 +215,9 @@ public class OverlordService {
         Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
             switch (arg) {
                 case "start":
-                    overlordService.start();
+                    new ApiContainer(overlordService).start(status -> {
+                        localLog.log(Level.INFO, String.format("%-20s %s", "dns.main.init", status));
+                    });
                     break;
                 default:
                     throw new IllegalArgumentException();

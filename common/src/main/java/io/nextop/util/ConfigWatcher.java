@@ -1,7 +1,6 @@
-package io.nextop.rx.util;
+package io.nextop.util;
 
 import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -16,8 +15,6 @@ import javax.annotation.Nullable;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 public final class ConfigWatcher extends ApiComponent.Base {
@@ -26,8 +23,6 @@ public final class ConfigWatcher extends ApiComponent.Base {
     private final JsonObject defaultConfigObject;
     private final File[] files;
 
-
-    private final long intervalMs = TimeUnit.MINUTES.toMillis(1);
 
     private final BehaviorSubject<JsonObject> mergedSubject;
 
@@ -51,10 +46,9 @@ public final class ConfigWatcher extends ApiComponent.Base {
 
         mergedSubject = BehaviorSubject.create();
 
-        init = ApiComponent.layerInit(Arrays.asList(),
-                () -> {
-                    pollSubscription = scheduler.createWorker().schedulePeriodically(poller(),
-                            0L, intervalMs, TimeUnit.MILLISECONDS);
+        init = ApiComponent.init("Config Watcher",
+                statusSink -> {
+                    pollSubscription = scheduler.createWorker().schedule(poller());
                 },
                 () -> {
                     pollSubscription.unsubscribe();

@@ -14,12 +14,13 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class FixedPool<T> implements AutoCloseable {
-    private final int maxSize;
+    private int maxSize;
     private final Func0<T> source;
     private final Action1<T> sink;
     private final Func1<T, Boolean> verifier;
 
     private int size;
+    private int outSize;
     private int head;
     private SortedMap<Integer, Subscriber<? super T>> pending;
     private Queue<T> values;
@@ -32,6 +33,7 @@ public class FixedPool<T> implements AutoCloseable {
         this.verifier = verifier;
 
         size = 0;
+        outSize = 0;
         head = 0;
         pending = new TreeMap<>();
         values = new LinkedList<>();
@@ -42,17 +44,8 @@ public class FixedPool<T> implements AutoCloseable {
     @Override
     public void close() {
         synchronized (this) {
-            // wait for all pending subscribers to empty
-            while (0 < pending.size()) {
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    // ignore
-                }
-            }
-
-            // wait for all subscriptions to close
-            while (0 < size) {
+            // wait for all pending subscribers and all subscriptions to close
+            while (0 < pending.size() || 0 < outSize) {
                 try {
                     wait();
                 } catch (InterruptedException e) {
@@ -65,6 +58,8 @@ public class FixedPool<T> implements AutoCloseable {
                 --size;
             }
             assert 0 == size;
+
+            maxSize = 0;
         }
     }
 
@@ -88,6 +83,8 @@ public class FixedPool<T> implements AutoCloseable {
                         pending.remove(index);
                     }
                 }));
+            } else {
+                ++outSize;
             }
             notifyAll();
         }
@@ -104,6 +101,7 @@ public class FixedPool<T> implements AutoCloseable {
                 subscriber = null;
             }
             if (null == subscriber) {
+                --outSize;
                 if (verifier.call(value)) {
                     values.add(value);
                 } else {
@@ -126,6 +124,7 @@ public class FixedPool<T> implements AutoCloseable {
     }
 
 
+    /** emitted value is valid for the duration between subscription and onComplete/onError */
     public Observable<T> getSingleObservable() {
         return Observable.create(subscriber -> {
             receive(subscriber);

@@ -1,5 +1,7 @@
-package io.nextop.rx.http;
+package io.nextop.http;
 
+import com.google.common.net.MediaType;
+import com.sun.xml.internal.xsom.impl.Ref;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -27,7 +29,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONTINUE;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /** Supports {@link ApiStatus} and {@link ApiException} */
-public final class NettyServer extends ApiComponent.Base {
+public final class NettyHttpServer extends ApiComponent.Base {
     private static final Logger log = Logger.getGlobal();
 
     public static final class Config {
@@ -47,74 +49,73 @@ public final class NettyServer extends ApiComponent.Base {
     private Subscription managerSubscription = null;
 
 
-    public NettyServer(Scheduler scheduler, Router router, Observable<Config> configSource) {
+    public NettyHttpServer(Scheduler scheduler, Router router, Observable<Config> configSource) {
         this.scheduler = scheduler;
         this.router = router;
         this.configSource = configSource;
 
-        init = ApiComponent.layerInit(Arrays.asList(),
-                () -> {
-                    // FIXME take(1)
-                    managerSubscription = configSource.subscribe(nettyManager());
+        NettyManager manager = new NettyManager();
+        init = ApiComponent.init("Netty Server",
+                statusSink -> {
+                    managerSubscription = configSource.take(1).subscribe(manager);
                 },
                 () -> {
                     managerSubscription.unsubscribe();
+                    manager.close();
                 });
     }
 
-    private Observer<Config> nettyManager() {
-        return new Observer<Config>() {
-            @Nullable EventLoopGroup bossGroup = null;
-            @Nullable EventLoopGroup workerGroup = null;
-            @Nullable Channel channel = null;
+    private class NettyManager implements Observer<Config> {
+        @Nullable EventLoopGroup bossGroup = null;
+        @Nullable EventLoopGroup workerGroup = null;
+        @Nullable Channel channel = null;
 
 
-            @Override
-            public void onNext(Config config) {
-                close();
-                assert null == bossGroup;
-                assert null == workerGroup;
-                assert null == channel;
+        @Override
+        public void onNext(Config config) {
+            close();
+            assert null == bossGroup;
+            assert null == workerGroup;
+            assert null == channel;
 
-                // HTTP
-                bossGroup = new NioEventLoopGroup();
-                workerGroup = new NioEventLoopGroup();
-                ServerBootstrap b = new ServerBootstrap();
-                b.option(ChannelOption.SO_BACKLOG, 1024);
-                b.group(bossGroup, workerGroup)
-                        .channel(NioServerSocketChannel.class)
-                        .childHandler(new HttpServerInitializer());
+            // HTTP
+            bossGroup = new NioEventLoopGroup();
+            workerGroup = new NioEventLoopGroup();
+            ServerBootstrap b = new ServerBootstrap();
+            b.option(ChannelOption.SO_BACKLOG, 1024);
+            b.group(bossGroup, workerGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .childHandler(new HttpServerInitializer());
 
-                channel = b.bind(config.httpPort).syncUninterruptibly().channel();
-                log.info(String.format("http listening on port %d", config.httpPort));
+            channel = b.bind(config.httpPort).syncUninterruptibly().channel();
+            log.info(String.format("http listening on port %d", config.httpPort));
+        }
+        @Override
+        public void onCompleted() {
+            // ignore
+        }
+        @Override
+        public void onError(Throwable e) {
+            // ignore
+        }
+
+
+        void close() {
+            if (null != channel) {
+                channel.close();
+                channel = null;
             }
-            @Override
-            public void onCompleted() {
-                close();
+            if (null != workerGroup) {
+                workerGroup.shutdownGracefully();
+                workerGroup = null;
             }
-            @Override
-            public void onError(Throwable e) {
-                close();
+            if (null != bossGroup) {
+                bossGroup.shutdownGracefully();
+                bossGroup = null;
             }
 
 
-            private void close() {
-                if (null != channel) {
-                    channel.close();
-                    channel = null;
-                }
-                if (null != workerGroup) {
-                    workerGroup.shutdownGracefully();
-                    workerGroup = null;
-                }
-                if (null != bossGroup) {
-                    bossGroup.shutdownGracefully();
-                    bossGroup = null;
-                }
-
-
-            }
-        };
+        }
     }
 
 
@@ -217,7 +218,7 @@ public final class NettyServer extends ApiComponent.Base {
 
                 void send(HttpResponse response) {
                     if (!response.headers().contains(CONTENT_TYPE)) {
-                        response.headers().set(CONTENT_TYPE, "text/plain");
+                        response.headers().set(CONTENT_TYPE, MediaType.PLAIN_TEXT_UTF_8.toString());
                     }
                     if (!response.headers().contains(CONTENT_LENGTH) && (response instanceof FullHttpResponse)) {
                         response.headers().set(CONTENT_LENGTH, ((FullHttpResponse) response).content().readableBytes());

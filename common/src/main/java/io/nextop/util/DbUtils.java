@@ -1,4 +1,4 @@
-package io.nextop.service.util;
+package io.nextop.util;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;

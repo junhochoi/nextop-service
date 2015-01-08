@@ -1,4 +1,4 @@
-package io.nextop.rx.http;
+package io.nextop.http;
 
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponse;

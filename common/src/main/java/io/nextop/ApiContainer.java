@@ -2,55 +2,60 @@ package io.nextop;
 
 import org.apache.http.HttpStatus;
 import rx.Observable;
+import rx.Observer;
 import rx.Scheduler;
 import rx.Subscription;
+import rx.functions.Action1;
 import rx.subjects.ReplaySubject;
 
 import javax.annotation.Nullable;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public final class ApiContainer implements AutoCloseable {
+public final class ApiContainer implements ApiComponent.Init {
     private static final Logger localLog = Logger.getGlobal();
 
-
-    final ReplaySubject<ApiStatus> initSubject;
-    @Nullable
-    Subscription subscription;
+    final ApiComponent.Init init;
 
     public ApiContainer(ApiComponent component) {
-        initSubject = ReplaySubject.create();
-
-        subscription = component.init().flatMap(status -> {
-            switch (status.code) {
-                case HttpStatus.SC_OK:
-                    return Observable.just(status);
-                default:
-                    return Observable.just(status).concatWith(Observable.error(new ApiException(status)));
-            }
-        }).subscribe(initSubject);
+        init = component.init();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
-                close();
+                stop();
             }
         });
     }
 
-    @Override
-    public synchronized void close() {
-        if (null != subscription) {
-            // let the base fully init
-            initSubject.toBlocking().last();
-
-            subscription.unsubscribe();
-            subscription = null;
-
-            initSubject.onCompleted();
+    public boolean start(Action1<ApiStatus> action) {
+        return start(
+        // TODO interesting error here when using a lambda:
+        // multiple non-overriding abstract methods found
+        new Observer<ApiStatus>() {
+            @Override
+            public void onNext(ApiStatus status) {
+                action.call(status);
+            }
+            @Override
+            public void onError(Throwable e) {
+                throw new ApiException(e);
+            }
+            @Override
+            public void onCompleted() {
+                // ignore
+            }
         }
+        );
     }
 
-    public Observable<ApiStatus> getInitStatusObservable() {
-        return initSubject;
+    @Override
+    public boolean start(Observer<ApiStatus> statusSink) {
+        return init.start(statusSink);
+    }
+
+    @Override
+    public void stop() {
+        init.stop();
     }
 }

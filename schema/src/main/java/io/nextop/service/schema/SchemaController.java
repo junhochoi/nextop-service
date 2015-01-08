@@ -2,7 +2,7 @@ package io.nextop.service.schema;
 
 import io.nextop.ApiStatus;
 import io.nextop.ApiComponent;
-import io.nextop.rx.db.DataSourceProvider;
+import io.nextop.db.DataSourceProvider;
 import org.apache.http.HttpStatus;
 import org.flywaydb.core.Flyway;
 import rx.Observable;
@@ -18,7 +18,7 @@ public final class SchemaController extends ApiComponent.Base {
 
 
     public Observable<ApiStatus> justUpgrade(String schemaName) {
-        return dataSourceProvider.justDataSource().map(dataSource -> {
+        return dataSourceProvider.withDataSource().map(dataSource -> {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);
             flyway.setLocations(String.format("classpath:/%s/db/migration", schemaName));

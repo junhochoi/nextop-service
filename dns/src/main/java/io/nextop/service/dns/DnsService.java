@@ -8,22 +8,33 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.nextop.ApiComponent;
 import io.nextop.ApiContainer;
-import io.nextop.rx.db.DataSourceProvider;
-import io.nextop.rx.http.BasicRouter;
-import io.nextop.rx.http.NettyServer;
-import io.nextop.rx.http.Router;
-import io.nextop.rx.util.ConfigWatcher;
-import io.nextop.service.*;
+import io.nextop.ApiException;
+import io.nextop.ApiStatus;
+import io.nextop.rx.MoreRxOperations;
+import io.nextop.db.DataSourceProvider;
+import io.nextop.http.BasicRouter;
+import io.nextop.http.NettyHttpServer;
+import io.nextop.http.Router;
+import io.nextop.util.ConfigWatcher;
+import io.nextop.service.NxId;
+import io.nextop.service.Permission;
 import io.nextop.service.admin.AdminContext;
 import io.nextop.service.admin.AdminModel;
 import io.nextop.service.log.ServiceLog;
 import io.nextop.service.schema.SchemaController;
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
 import rx.Observable;
+import rx.Observer;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -32,7 +43,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.nextop.service.util.ClUtils.*;
+import static io.nextop.util.ClUtils.getStrings;
 
 
 public class DnsService extends ApiComponent.Base {
@@ -85,7 +96,7 @@ public class DnsService extends ApiComponent.Base {
     private final DataSourceProvider dataSourceProvider;
     private final SchemaController schemaController;
     private final ConfigWatcher configWatcher;
-    private final NettyServer httpServer;
+    private final NettyHttpServer httpServer;
 
     private final AdminContext context;
 
@@ -95,10 +106,10 @@ public class DnsService extends ApiComponent.Base {
                         new Thread(r, "DnsService Worker")
         ));
         modelScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
-                        new Thread(r, "context.adminModel Worker")
+                        new Thread(r, "AdminModel Worker")
         ));
 
-        configWatcher = new ConfigWatcher(apiScheduler, defaultConfigObject, configFiles);
+        configWatcher = new ConfigWatcher(modelScheduler, defaultConfigObject, configFiles);
         dataSourceProvider = new DataSourceProvider(modelScheduler,
                 configWatcher.getMergedObservable().map(configObject -> {
                     JsonObject dbConfigObject = configObject.get("db").getAsJsonObject();
@@ -113,24 +124,30 @@ public class DnsService extends ApiComponent.Base {
                     return config;
                 }));
         schemaController = new SchemaController(dataSourceProvider);
-        httpServer = new NettyServer(apiScheduler, router(),
+        httpServer = new NettyHttpServer(apiScheduler, router(),
                 configWatcher.getMergedObservable().map(configObject -> {
                     JsonObject httpConfigObject = configObject.get("http").getAsJsonObject();
 
                     // FIXME fix the parsing here
-                    NettyServer.Config config = new NettyServer.Config();
+                    NettyHttpServer.Config config = new NettyHttpServer.Config();
                     config.httpPort = httpConfigObject.get("port").getAsInt();
                     return config;
                 }));
 
         context = new AdminContext();
+        context.scheduler = modelScheduler;
         context.log = new ServiceLog();
-        context.adminModel = new AdminModel(context, modelScheduler, dataSourceProvider);
+        context.dataSourceProvider = dataSourceProvider;
+        context.adminModel = new AdminModel(context);
 
         init = ApiComponent.layerInit(configWatcher.init(),
                 dataSourceProvider.init(),
                 schemaController.init(),
-                schemaController.justUpgrade("admin"),
+                ApiComponent.init("Admin Schema Upgrade",
+                        statusSink -> {
+                            MoreRxOperations.blockingSubscribe(schemaController.justUpgrade("admin"), statusSink);
+                        },
+                        () -> {}),
                 context.init(),
                 httpServer.init());
     }
@@ -183,7 +200,6 @@ public class DnsService extends ApiComponent.Base {
         Options options = new Options();
         options.addOption("c", "configFile", true, "JSON config file");
 
-        CommandLine cl;
         try {
             main(new GnuParser().parse(options, in));
         } catch (Exception e) {
@@ -201,8 +217,8 @@ public class DnsService extends ApiComponent.Base {
         Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
             switch (arg) {
                 case "start":
-                    new ApiContainer(dnsService).getInitStatusObservable().forEach(status -> {
-                        localLog.log(Level.INFO, "dns.main", status.toString());
+                    new ApiContainer(dnsService).start(status -> {
+                        localLog.log(Level.INFO, String.format("%-20s %s", "dns.main.init", status));
                     });
                     break;
                 default:
