@@ -3,41 +3,31 @@ package io.nextop.service.overlord;
 import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.nextop.ApiComponent;
 import io.nextop.ApiContainer;
-import io.nextop.db.DataSourceProvider;
 import io.nextop.http.BasicRouter;
 import io.nextop.http.NettyHttpServer;
 import io.nextop.http.Router;
-import io.nextop.rx.MoreRxOperations;
-import io.nextop.service.admin.AdminContext;
-import io.nextop.service.admin.AdminModel;
-import io.nextop.util.ConfigWatcher;
 import io.nextop.service.NxId;
 import io.nextop.service.Permission;
-import io.nextop.service.log.ServiceLog;
+import io.nextop.util.CliUtils;
+import io.nextop.util.ConfigWatcher;
 import io.nextop.util.NettyUtils;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.Namespace;
 import rx.Observable;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
-import javax.annotation.Nullable;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 // FIXME figure out how to package schema upgades into docker
 // FIXME run upgrades when docker starts (dns, hyperlord, overlord, etc)
@@ -179,49 +169,80 @@ public class OverlordService extends ApiComponent.Base {
     /////// MAIN ///////
 
     public static void main(String[] in) {
-        Options options = new Options();
-        options.addOption("c", "configFile", true, "JSON config file");
-        options.addOption("a", "accessKey", true, "Access key");
-        options.addOption("P", "port", true, "Port");
+        ArgumentParser parser = ArgumentParsers.newArgumentParser("overlord")
+                .defaultHelp(true)
+                .description("Nextop overlord");
+        parser.addArgument("-c", "--configFile")
+                .nargs("*")
+                .help("JSON config file");
+        parser.addArgument("-a", "--accessKey")
+                .required(true)
+                .help("Access key");
+        parser.addArgument("-P", "--port")
+                .required(true)
+                .type(int.class)
+                .help("nextop port (http is 10000 lower; https is 5000 lower)");
+        parser.addArgument("actions")
+                .nargs("+")
+                .choices("start");
 
-        // FIXME merge the access key and port into the default config
-
-        // FIXME command line option for access key
-
-        CommandLine cl;
         try {
-            main(new GnuParser().parse(options, in));
+            Namespace ns = parser.parseArgs(in);
+            main(ns);
+        } catch (ArgumentParserException e) {
+            parser.handleError(e);
+            System.exit(400);
         } catch (Exception e) {
-            // FIXME log
-//            lopcal.unhandled("overlord.main", e);
-            new HelpFormatter().printHelp("overlord", options);
+            localLog.log(Level.SEVERE, "overlord.main", e);
+            parser.printUsage();
             System.exit(400);
         }
     }
-    private static void main(CommandLine cl) throws Exception {
-        JsonObject defaultConfigObject;
-        // extract the default (bundled) config object
-        Reader r = new BufferedReader(new InputStreamReader(ClassLoader.getSystemClassLoader().getResourceAsStream("conf.json"), Charsets.UTF_8));
-        try {
-            defaultConfigObject = new JsonParser().parse(r).getAsJsonObject();
-        } finally {
-            r.close();
-        }
+    private static void main(Namespace ns) throws Exception {
+        JsonObject defaultConfigObject = new JsonObject();
+        ConfigWatcher.mergeDown(defaultConfigObject,
+                getDefaultConfigObject(), createArgConfigObject(ns));
 
-        @Nullable String[] configFiles = cl.getOptionValues('c');
+        List<String> configFiles = CliUtils.getList(ns, "configFile");
 
-        OverlordService overlordService = new OverlordService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
+        OverlordService overlordService = new OverlordService(defaultConfigObject,
+                configFiles.toArray(new String[configFiles.size()]));
 
-        Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
-            switch (arg) {
+        for (String action : CliUtils.<String>getList(ns, "actions")) {
+            switch (action) {
                 case "start":
                     new ApiContainer(overlordService).start(status -> {
-                        localLog.log(Level.INFO, String.format("%-20s %s", "dns.main.init", status));
+                        localLog.log(Level.INFO, String.format("%-20s %s", "overlord.main.init", status));
                     });
                     break;
                 default:
                     throw new IllegalArgumentException();
             }
-        });
+        }
+    }
+    private static JsonObject getDefaultConfigObject() throws IOException {
+        // extract the default (bundled) config object
+        Reader r = new BufferedReader(new InputStreamReader(ClassLoader.getSystemClassLoader().getResourceAsStream("local.conf.json"), Charsets.UTF_8));
+        try {
+            return new JsonParser().parse(r).getAsJsonObject();
+        } finally {
+            r.close();
+        }
+    }
+    private static JsonObject createArgConfigObject(Namespace ns) {
+        NxId accessKey = NxId.valueOf(ns.getString("accessKey"));
+        int port = ns.getInt("port");
+
+        JsonObject nextopObject = new JsonObject();
+        nextopObject.addProperty("port", port);
+        JsonObject httpObject = new JsonObject();
+        httpObject.addProperty("port", port - 10000);
+
+        JsonObject baseConfigObject = new JsonObject();
+        baseConfigObject.addProperty("accessKey", accessKey.toString());
+        baseConfigObject.add("nextop", nextopObject);
+        baseConfigObject.add("http", httpObject);
+
+        return baseConfigObject;
     }
 }

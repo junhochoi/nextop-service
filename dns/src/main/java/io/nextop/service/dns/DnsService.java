@@ -8,26 +8,24 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.nextop.ApiComponent;
 import io.nextop.ApiContainer;
-import io.nextop.ApiException;
-import io.nextop.ApiStatus;
-import io.nextop.rx.MoreRxOperations;
 import io.nextop.db.DataSourceProvider;
 import io.nextop.http.BasicRouter;
 import io.nextop.http.NettyHttpServer;
 import io.nextop.http.Router;
-import io.nextop.util.ConfigWatcher;
+import io.nextop.rx.MoreRxOperations;
 import io.nextop.service.NxId;
 import io.nextop.service.Permission;
 import io.nextop.service.admin.AdminContext;
 import io.nextop.service.admin.AdminModel;
 import io.nextop.service.log.ServiceLog;
 import io.nextop.service.schema.SchemaController;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
+import io.nextop.util.CliUtils;
+import io.nextop.util.ConfigWatcher;
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.Namespace;
 import rx.Observable;
-import rx.Observer;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
@@ -41,9 +39,6 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static io.nextop.util.ClUtils.getStrings;
 
 
 public class DnsService extends ApiComponent.Base {
@@ -147,7 +142,8 @@ public class DnsService extends ApiComponent.Base {
                         statusSink -> {
                             MoreRxOperations.blockingSubscribe(schemaController.justUpgrade("admin"), statusSink);
                         },
-                        () -> {}),
+                        () -> {
+                        }),
                 context.init(),
                 httpServer.init());
     }
@@ -197,25 +193,38 @@ public class DnsService extends ApiComponent.Base {
     /////// MAIN ///////
 
     public static void main(String[] in) {
-        Options options = new Options();
-        options.addOption("c", "configFile", true, "JSON config file");
+        ArgumentParser parser = ArgumentParsers.newArgumentParser("dns")
+                .defaultHelp(true)
+                .description("Nextop dns");
+        parser.addArgument("-c", "--configFile")
+                .nargs("*")
+                .help("JSON config file");
+        parser.addArgument("actions")
+                .nargs("+")
+                .choices("start");
 
         try {
-            main(new GnuParser().parse(options, in));
+            Namespace ns = parser.parseArgs(in);
+            main(ns);
+        } catch (ArgumentParserException e) {
+            parser.handleError(e);
+            System.exit(400);
         } catch (Exception e) {
             localLog.log(Level.SEVERE, "dns.main", e);
-            new HelpFormatter().printHelp("dns", options);
+            parser.printUsage();
             System.exit(400);
         }
     }
-    private static void main(CommandLine cl) throws Exception {
+    private static void main(Namespace ns) throws Exception {
         JsonObject defaultConfigObject = getDefaultConfigObject();
-        String[] configFiles = getStrings(cl, 'c', new String[0]);
 
-        DnsService dnsService = new DnsService(defaultConfigObject, configFiles);
+        List<String> configFiles = CliUtils.getList(ns, "configFiles");
 
-        Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
-            switch (arg) {
+        DnsService dnsService = new DnsService(defaultConfigObject,
+                configFiles.toArray(new String[configFiles.size()]));
+
+        for (String action : CliUtils.<String>getList(ns, "actions")) {
+            switch (action) {
                 case "start":
                     new ApiContainer(dnsService).start(status -> {
                         localLog.log(Level.INFO, String.format("%-20s %s", "dns.main.init", status));
@@ -224,7 +233,7 @@ public class DnsService extends ApiComponent.Base {
                 default:
                     throw new IllegalArgumentException();
             }
-        });
+        }
     }
     private static JsonObject getDefaultConfigObject() throws IOException {
         // extract the default (bundled) config object

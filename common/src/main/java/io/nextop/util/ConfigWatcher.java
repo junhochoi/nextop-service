@@ -108,7 +108,7 @@ public final class ConfigWatcher extends ApiComponent.Base {
 
 
     /** @param objects higher indexes have precedence */
-    private static void mergeDown(JsonObject mergedObject, JsonObject ... objects) {
+    public static void mergeDown(JsonObject mergedObject, JsonObject ... objects) {
         for (int i = objects.length - 1; 0 <= i; --i) {
             JsonObject object = objects[i];
             for (Map.Entry<String, JsonElement> e : object.entrySet()) {

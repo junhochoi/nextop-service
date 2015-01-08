@@ -1,15 +1,8 @@
 package io.nextop;
 
-import org.apache.http.HttpStatus;
-import rx.Observable;
 import rx.Observer;
-import rx.Scheduler;
-import rx.Subscription;
 import rx.functions.Action1;
-import rx.subjects.ReplaySubject;
 
-import javax.annotation.Nullable;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class ApiContainer implements ApiComponent.Init {

@@ -1,7 +1,6 @@
 package io.nextop.http;
 
 import com.google.common.net.MediaType;
-import com.sun.xml.internal.xsom.impl.Ref;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -20,9 +19,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.logging.Logger;
 
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH;
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
+import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.is100ContinueExpected;
 import static io.netty.handler.codec.http.HttpHeaders.isKeepAlive;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONTINUE;

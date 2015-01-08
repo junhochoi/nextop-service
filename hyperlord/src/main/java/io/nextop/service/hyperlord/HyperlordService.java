@@ -126,58 +126,39 @@ public class HyperlordService {
     }
 
 
-    private final Scheduler hyperlordScheduler;
-    private final Scheduler modelScheduler;
-    private final Scheduler controllerScheduler;
-
-    private final ConfigWatcher configWatcher;
-    private final NettyHttpServer httpServer;
-
-    private final AdminContext context;
+//    private final Scheduler hyperlordScheduler;
+//    private final Scheduler modelScheduler;
+//    private final Scheduler controllerScheduler;
+//
+//    private final ConfigWatcher configWatcher;
+//    private final NettyHttpServer httpServer;
+//
+//    private final AdminContext context;
 
 
     HyperlordService(JsonObject defaultConfigObject, String ... configFiles) {
-        hyperlordScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
-                        new Thread(r, "HyperlordService Worker")
-        ));
-        modelScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
-                        new Thread(r, "ServiceAdminModel Worker")
-        ));
-        controllerScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
-                        new Thread(r, "ServiceAdminController Worker")
-        ));
-
-        configWatcher = new ConfigWatcher(hyperlordScheduler, defaultConfigObject, configFiles);
-        httpServer = new NettyHttpServer(hyperlordScheduler, router());
+//        hyperlordScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
+//                        new Thread(r, "HyperlordService Worker")
+//        ));
+//        modelScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
+//                        new Thread(r, "ServiceAdminModel Worker")
+//        ));
+//        controllerScheduler = Schedulers.from(Executors.newFixedThreadPool(4, (Runnable r) ->
+//                        new Thread(r, "ServiceAdminController Worker")
+//        ));
+//
+//        configWatcher = new ConfigWatcher(hyperlordScheduler, defaultConfigObject, configFiles);
+//        httpServer = new NettyHttpServer(hyperlordScheduler, router());
 
         // CONTEXT
-        context = new AdminContext();
-        new AdminModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
-                configObject.get("adminModel").getAsJsonObject()));
-        new AdminController(context, controllerScheduler);
+//        context = new AdminContext();
+//        new AdminModel(context, modelScheduler, configWatcher.getMergedObservable().map(configObject ->
+//                configObject.get("adminModel").getAsJsonObject()));
+//        new AdminController(context, controllerScheduler);
 
 
     }
 
-
-    public void start()  {
-        configWatcher.start();
-
-        httpServer.start(configWatcher.getMergedObservable().map(configObject -> {
-            NettyHttpServer.Config config = new NettyHttpServer.Config();
-            config.httpPort = configObject.get("httpPort").getAsInt();
-            return config;
-        }));
-
-
-        // FIXME start monitoring up overlords
-//        context.adminController.startMonitor()
-    }
-
-    public void stop() {
-        httpServer.stop();
-        configWatcher.stop();
-    }
 
 
     /////// ROUTES ///////
@@ -256,7 +237,7 @@ public class HyperlordService {
         Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
             switch (arg) {
                 case "start":
-                    hyperlordService.start();
+//                    hyperlordService.start();
                     break;
                 default:
                     throw new IllegalArgumentException();
