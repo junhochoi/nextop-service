@@ -2,8 +2,10 @@ package io.nextop.service.dns;
 
 
 import com.google.common.base.Charsets;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.nextop.ApiComponent;
@@ -21,6 +23,7 @@ import io.nextop.service.log.ServiceLog;
 import io.nextop.service.schema.SchemaController;
 import io.nextop.util.CliUtils;
 import io.nextop.util.ConfigWatcher;
+import io.nextop.util.NettyUtils;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
@@ -153,11 +156,17 @@ public class DnsService extends ApiComponent.Base {
 
     private Observable<HttpResponse> getOverlords(NxId accessKey, Collection<NxId> grantKeys) {
         return context.adminModel.requirePermissions(context.adminModel.justOverlords(accessKey), accessKey, grantKeys,
-                Permission.admin.on()).map(authorities -> {
-            String joinedAuthorityStrings = authorities.stream().map(authority -> authority.toString()).collect(Collectors.joining(";"));
+                Permission.admin.on()).map(overlords -> {
+            // FIXME
+            JsonArray authoritiesArray = new JsonArray();
+            overlords.stream().forEach(overlord -> {
+                authoritiesArray.add(new JsonPrimitive(overlord.authority.toString()));
+            });
 
-            return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(joinedAuthorityStrings.getBytes(Charsets.UTF_8)));
+            JsonObject returnObject = new JsonObject();
+            returnObject.add("authorities", authoritiesArray);
+
+            return NettyUtils.jsonResponse(returnObject);
         });
     }
 
@@ -170,11 +179,16 @@ public class DnsService extends ApiComponent.Base {
     }
 
     private Observable<HttpResponse> getEdges(NxId accessKey, Collection<NxId> grantKeys) {
-        return context.adminModel.justOverlords(accessKey).map(authorities -> {
-            String joinedAuthorityStrings = authorities.stream().map(authority -> authority.toString()).collect(Collectors.joining(";"));
+        return context.adminModel.justOverlords(accessKey).map(overlords -> {
+            JsonArray authoritiesArray = new JsonArray();
+            overlords.stream().forEach(overlord -> {
+                authoritiesArray.add(new JsonPrimitive(overlord.authority.toString()));
+            });
 
-            return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(joinedAuthorityStrings.getBytes(Charsets.UTF_8)));
+            JsonObject returnObject = new JsonObject();
+            returnObject.add("authorities", authoritiesArray);
+
+            return NettyUtils.jsonResponse(returnObject);
         });
     }
 
@@ -218,7 +232,7 @@ public class DnsService extends ApiComponent.Base {
     private static void main(Namespace ns) throws Exception {
         JsonObject defaultConfigObject = getDefaultConfigObject();
 
-        List<String> configFiles = CliUtils.getList(ns, "configFiles");
+        List<String> configFiles = CliUtils.getList(ns, "configFile");
 
         DnsService dnsService = new DnsService(defaultConfigObject,
                 configFiles.toArray(new String[configFiles.size()]));

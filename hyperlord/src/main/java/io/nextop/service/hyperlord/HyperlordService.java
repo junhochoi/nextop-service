@@ -6,32 +6,17 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.netty.handler.codec.http.*;
 import io.nextop.http.BasicRouter;
-import io.nextop.http.NettyHttpServer;
 import io.nextop.http.Router;
-import io.nextop.util.ConfigWatcher;
-import io.nextop.service.*;
-import io.nextop.service.admin.AdminContext;
-import io.nextop.service.admin.AdminController;
-import io.nextop.service.admin.AdminModel;
+import io.nextop.service.NxId;
+import io.nextop.service.Permission;
 import io.nextop.service.log.ServiceLog;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
 import rx.Observable;
-import rx.Scheduler;
-import rx.schedulers.Schedulers;
 
-import javax.annotation.Nullable;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.*;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class HyperlordService {
     private static final ServiceLog log = new ServiceLog();
@@ -207,41 +192,5 @@ public class HyperlordService {
 
     /////// MAIN ///////
 
-    public static void main(String[] in) {
-        Options options = new Options();
-        options.addOption("c", "configFile", true, "JSON config file");
-
-        CommandLine cl;
-        try {
-            main(new GnuParser().parse(options, in));
-        } catch (Exception e) {
-            log.unhandled("hyperlord.main", e);
-            new HelpFormatter().printHelp("hyperlord", options);
-            System.exit(400);
-        }
-    }
-    private static void main(CommandLine cl) throws Exception {
-        JsonObject defaultConfigObject;
-        // extract the default (bundled) config object
-        Reader r = new BufferedReader(new InputStreamReader(ClassLoader.getSystemClassLoader().getResourceAsStream("conf.json"), Charsets.UTF_8));
-        try {
-            defaultConfigObject = new JsonParser().parse(r).getAsJsonObject();
-        } finally {
-            r.close();
-        }
-
-        @Nullable String[] configFiles = cl.getOptionValues('c');
-
-        HyperlordService hyperlordService = new HyperlordService(defaultConfigObject, null != configFiles ? configFiles : new String[0]);
-
-        Stream.of(cl.getArgs()).map(String::toLowerCase).forEach(arg -> {
-            switch (arg) {
-                case "start":
-//                    hyperlordService.start();
-                    break;
-                default:
-                    throw new IllegalArgumentException();
-            }
-        });
-    }
+    // FIXME
 }

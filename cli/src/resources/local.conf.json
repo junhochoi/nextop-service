@@ -1,0 +1,13 @@
+{
+  "http": {
+    "port": 2778
+  },
+  "db": {
+    "scheme": "mysql",
+    "host": "localhost",
+    "port": 3306,
+    "db": "service",
+    "user": "root",
+    "password": ""
+  }
+}

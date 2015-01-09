@@ -1,4 +1,3 @@
-apply plugin: 'java'
 
 mainClassName = "io.nextop.service.dns.DnsService"
 applicationDefaultJvmArgs = []

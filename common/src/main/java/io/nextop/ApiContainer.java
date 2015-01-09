@@ -5,7 +5,7 @@ import rx.functions.Action1;
 
 import java.util.logging.Logger;
 
-public final class ApiContainer implements ApiComponent.Init {
+public final class ApiContainer implements ApiComponent.Init, AutoCloseable {
     private static final Logger localLog = Logger.getGlobal();
 
     final ApiComponent.Init init;
@@ -50,5 +50,10 @@ public final class ApiContainer implements ApiComponent.Init {
     @Override
     public void stop() {
         init.stop();
+    }
+
+    @Override
+    public void close() throws Exception {
+        stop();
     }
 }

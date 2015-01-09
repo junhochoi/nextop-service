@@ -12,8 +12,7 @@ buildscript {
 }
 
 subprojects {
-    apply plugin:'application'
-    apply plugin: 'docker'
+    apply plugin: 'java'
 
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
@@ -36,6 +35,13 @@ subprojects {
         compile group: 'mysql', name: 'mysql-connector-java', version: '5.1.34'
         testCompile group: 'junit', name: 'junit', version: '4.11'
     }
+}
+
+configure(subprojects.findAll {subproject -> subproject.name in ['dns', 'hyperlord', 'overlord', 'cli']}) {
+    apply plugin: 'java'
+    apply plugin: 'application'
+    apply plugin: 'docker'
+
 
     docker {
         group = System.getenv('NEXTOP_DOCKER_GROUP')

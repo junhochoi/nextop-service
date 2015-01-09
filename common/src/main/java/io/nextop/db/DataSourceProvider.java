@@ -13,8 +13,11 @@ import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 public class DataSourceProvider extends ApiComponent.Base {
+    private static final Logger localLog = Logger.getGlobal();
+
     public static final class Config {
         public String scheme;
         public String host;
@@ -24,6 +27,12 @@ public class DataSourceProvider extends ApiComponent.Base {
         public String password;
 
         public int maxSize = 1;
+
+        @Override
+        public String toString() {
+            return String.format("scheme: %s, host: %s, port: %d, db: %s, user: %s, password: %s, maxSize: %d",
+                    scheme, host, port, db, user, password, maxSize);
+        }
     }
 
 
@@ -113,6 +122,7 @@ public class DataSourceProvider extends ApiComponent.Base {
     }
 
     private DataSource createDataSource(Config config) {
+        localLog.info(String.format("Creating data source %s", config));
         switch (config.scheme) {
             case "mysql": {
                 MysqlDataSource mysqlDataSource = new MysqlDataSource();

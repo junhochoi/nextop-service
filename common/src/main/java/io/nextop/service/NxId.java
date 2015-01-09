@@ -41,7 +41,9 @@ public final class NxId {
             }
             bytes[i / 2] = (byte) ((a << 4) | b);
         }
-        return new NxId(bytes);
+        NxId id = new NxId(bytes);
+        assert id.toString().equals(s);
+        return id;
     }
 
 
@@ -61,8 +63,8 @@ public final class NxId {
     @Override
     public String toString() {
         CharBuffer cb = CharBuffer.allocate(64);
-        for (byte b : bytes) {
-            cb.put(byteToHex[0xFF & b]);
+        for (int i = 0; i < 32; ++i) {
+            cb.put(byteToHex[0xFF & bytes[i]]);
         }
         return new String(cb.array());
     }
@@ -90,7 +92,7 @@ public final class NxId {
     static {
         nibbleToHex = new char[16];
         for (int i = 0; i < 16; ++i) {
-            nibbleToHex[i] = Integer.toHexString(i).charAt(0);
+            nibbleToHex[i] = Character.toLowerCase(Integer.toHexString(i).charAt(0));
         }
         hexToNibble = new int[128];
         for (int i = 0, n = hexToNibble.length; i < n; ++i) {
@@ -102,7 +104,7 @@ public final class NxId {
         }
         byteToHex = new char[256][];
         for (int i = 0; i < 256; ++i) {
-            byteToHex[i] = new char[]{nibbleToHex[i & 0x0F], nibbleToHex[(i >>> 4) & 0x0F]};
+            byteToHex[i] = new char[]{nibbleToHex[(i >>> 4) & 0x0F], nibbleToHex[i & 0x0F]};
         }
     }
 }

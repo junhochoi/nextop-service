@@ -18,6 +18,7 @@ import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
+import org.apache.http.HttpStatus;
 import rx.Observable;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
@@ -191,11 +192,11 @@ public class OverlordService extends ApiComponent.Base {
             main(ns);
         } catch (ArgumentParserException e) {
             parser.handleError(e);
-            System.exit(400);
+            System.exit(HttpStatus.SC_BAD_REQUEST);
         } catch (Exception e) {
             localLog.log(Level.SEVERE, "overlord.main", e);
             parser.printUsage();
-            System.exit(400);
+            System.exit(HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
     }
     private static void main(Namespace ns) throws Exception {

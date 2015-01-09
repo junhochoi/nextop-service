@@ -1,5 +1,5 @@
 
-mainClassName = "io.nextop.service.overlord.OverlordService"
+mainClassName = "io.nextop.service.nx.Nx"
 applicationDefaultJvmArgs = []
 
 sourceSets {
