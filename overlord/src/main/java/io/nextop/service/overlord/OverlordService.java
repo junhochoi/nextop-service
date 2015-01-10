@@ -9,7 +9,7 @@ import io.nextop.ApiContainer;
 import io.nextop.http.BasicRouter;
 import io.nextop.http.NettyHttpServer;
 import io.nextop.http.Router;
-import io.nextop.service.NxId;
+import io.nextop.service.Id;
 import io.nextop.service.Permission;
 import io.nextop.util.CliUtils;
 import io.nextop.util.ConfigWatcher;
@@ -38,7 +38,7 @@ public class OverlordService extends ApiComponent.Base {
 
     private final Router router() {
         BasicRouter router = new BasicRouter();
-        Object grantKeyMatcher = BasicRouter.var("grant-key", segment -> NxId.valueOf(segment));
+        Object grantKeyMatcher = BasicRouter.var("grant-key", segment -> Id.valueOf(segment));
 
         Function<Map<String, List<?>>, Map<String, List<?>>> validate = parameters -> {
             return parameters;
@@ -58,30 +58,29 @@ public class OverlordService extends ApiComponent.Base {
             return parameters;
         };
         Function<Map<String, List<?>>, Map<String, List<?>>> validateConfigMask = parameters -> {
-            FullHttpRequest request = (FullHttpRequest) parameters.get("request").get(0);
-            JsonObject configMaskObject = new JsonParser().parse(new InputStreamReader(
-                    new ByteArrayInputStream(request.content().array()), Charsets.UTF_8)).getAsJsonObject();
+            FullHttpRequest request = (FullHttpRequest) parameters.get(NettyHttpServer.P_REQUEST).get(0);
+            JsonObject configMaskObject = new JsonParser().parse(request.content().toString(Charsets.UTF_8)).getAsJsonObject();
             parameters.put("config-mask", Collections.singletonList(configMaskObject));
 
             return parameters;
         };
 
-        router.add(HttpMethod.GET, Arrays.asList("metrics"), validate.andThen(parameters ->
+        router.add(HttpMethod.GET, Arrays.asList("metrics.json"), validate.andThen(parameters ->
                 getMetrics()));
         router.add(HttpMethod.PUT, Arrays.asList("grant-key", grantKeyMatcher), validate.andThen(validatePermissionMasks
         ).andThen(parameters -> {
-            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
+            Id grantKey = (Id) parameters.get("grant-key").get(0);
             List<Permission.Mask> masks = (List<Permission.Mask>) parameters.get("permission-mask");
             return putGrantKey(grantKey, masks);
         }));
         router.add(HttpMethod.POST, Arrays.asList("grant-key", grantKeyMatcher), validate.andThen(validatePermissionMasks
         ).andThen(parameters -> {
-            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
+            Id grantKey = (Id) parameters.get("grant-key").get(0);
             List<Permission.Mask> masks = (List<Permission.Mask>) parameters.get("permission-mask");
             return postGrantKey(grantKey, masks);
         }));
         router.add(HttpMethod.DELETE, Arrays.asList("grant-key", grantKeyMatcher), validate.andThen(parameters -> {
-            NxId grantKey = (NxId) parameters.get("grant-key").get(0);
+            Id grantKey = (Id) parameters.get("grant-key").get(0);
             return deleteGrantKey(grantKey);
         }));
         router.add(HttpMethod.GET, Arrays.asList("config"), validate.andThen(parameters -> {
@@ -141,17 +140,17 @@ public class OverlordService extends ApiComponent.Base {
         return Observable.just(NettyUtils.jsonResponse(metrics.getSnapshot().toJson()));
     }
 
-    private Observable<HttpResponse> putGrantKey(NxId grantKey, List<Permission.Mask> masks) {
+    private Observable<HttpResponse> putGrantKey(Id grantKey, List<Permission.Mask> masks) {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
-    private Observable<HttpResponse> postGrantKey(NxId grantKey, List<Permission.Mask> masks) {
+    private Observable<HttpResponse> postGrantKey(Id grantKey, List<Permission.Mask> masks) {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
 
-    private Observable<HttpResponse> deleteGrantKey(NxId grantKey) {
+    private Observable<HttpResponse> deleteGrantKey(Id grantKey) {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }
@@ -231,7 +230,7 @@ public class OverlordService extends ApiComponent.Base {
         }
     }
     private static JsonObject createArgConfigObject(Namespace ns) {
-        NxId accessKey = NxId.valueOf(ns.getString("accessKey"));
+        Id accessKey = Id.valueOf(ns.getString("accessKey"));
         int port = ns.getInt("port");
 
         JsonObject nextopObject = new JsonObject();

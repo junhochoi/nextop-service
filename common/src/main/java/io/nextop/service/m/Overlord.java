@@ -1,14 +1,14 @@
 package io.nextop.service.m;
 
 import io.nextop.service.Authority;
-import io.nextop.service.NxId;
+import io.nextop.service.Id;
 
 import javax.annotation.Nullable;
 
 public class Overlord {
     public Authority authority;
 
-    public NxId localKey;
+    public Id localKey;
 
     @Nullable
     public Cloud cloud = null;

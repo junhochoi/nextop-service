@@ -2,7 +2,7 @@ package io.nextop.service.admin;
 
 import io.nextop.ApiComponent;
 import io.nextop.ApiStatus;
-import io.nextop.service.NxId;
+import io.nextop.service.Id;
 import rx.Observable;
 import rx.Scheduler;
 
@@ -24,7 +24,7 @@ public class AdminController extends ApiComponent.Base {
 
     /** set up an access key with no existing overlords. Assigns admin permissions to the given
      * grant key and instantiates an overlord process with the given code hash on a free host. */
-    public Observable<ApiStatus> initAccessKey(NxId accessKey, NxId rootGrantKey, String packageTag) {
+    public Observable<ApiStatus> initAccessKey(Id accessKey, Id rootGrantKey, String packageTag) {
         // FIXME
         return null;
     }
@@ -34,7 +34,7 @@ public class AdminController extends ApiComponent.Base {
     // FIXME in model mark overlords that are scheduled to be taken down
     // FIXME once new overlord is up, send a message to existing overlord to shut down and
     // FIXME migrate its connections to its closest pair
-    public Observable<ApiStatus> migrateAccessKey(NxId accessKey, String gitCommitHash) {
+    public Observable<ApiStatus> migrateAccessKey(Id accessKey, String gitCommitHash) {
         // FIXME
         return null;
     }

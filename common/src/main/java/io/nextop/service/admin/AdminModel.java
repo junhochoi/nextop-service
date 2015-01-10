@@ -27,7 +27,7 @@ public class AdminModel extends ApiComponent.Base {
 
     /////// PERMISSIONS ///////
 
-    public <T> Observable<T> requirePermissions(Observable<T> source, NxId accessKey, Collection<NxId> grantKeys, Permission.Mask... permissionMasks) {
+    public <T> Observable<T> requirePermissions(Observable<T> source, Id accessKey, Collection<Id> grantKeys, Permission.Mask... permissionMasks) {
         return context.dataSourceProvider.withConnection().map((Connection connection) -> {
             context.log.message("adminModel.requirePermissions");
 
@@ -94,9 +94,9 @@ public class AdminModel extends ApiComponent.Base {
     // FIXME justMarkOverlordTerminating(localKey)
     //
 
-    public Observable<Overlord> justCreateOverlord(NxId accessKey) {
+    public Observable<Overlord> justCreateOverlord(Id accessKey) {
         return context.dataSourceProvider.withConnection().map((Connection connection) -> {
-            NxId localKey = NxId.create();
+            Id localKey = Id.create();
 
             try {
                 // retry is needed when the free slot from the transaction is taken before the transaction commits
@@ -140,7 +140,7 @@ public class AdminModel extends ApiComponent.Base {
                                         // FIXME log this
                                         throw ApiException.internalError();
                                     } else {
-                                        authority = new Authority(rs.getString(1), rs.getInt(2));
+                                        authority = Authority.create(Ip.valueOf(rs.getString(1)), rs.getInt(2));
                                     }
                                 } finally {
                                     rs.close();
@@ -178,7 +178,7 @@ public class AdminModel extends ApiComponent.Base {
                         " SET access_key = NULL, local_key = NULL" +
                         " WHERE public_host = ? AND Overlord.port = ?");
                 try {
-                    selectLocalKey.setString(1, authority.host);
+                    selectLocalKey.setString(1, authority.host.toString());
                     selectLocalKey.setInt(2, authority.port);
 
                     int c = selectLocalKey.executeUpdate();
@@ -198,7 +198,7 @@ public class AdminModel extends ApiComponent.Base {
     // FIXME overlord status
     // FIXME overlord status is used to maintain reservations
 
-    public Observable<Collection<Overlord>> justOverlords(NxId accessKey) {
+    public Observable<Collection<Overlord>> justOverlords(Id accessKey) {
         return context.dataSourceProvider.withConnection().map((Connection connection) -> {
             Collection<Overlord> overlords = new ArrayList<Overlord>(16);
             try {
@@ -220,8 +220,8 @@ public class AdminModel extends ApiComponent.Base {
                                 "terminating");
                         while (rs.next()) {
                             Overlord overlord = new Overlord();
-                            overlord.authority = new Authority(rs.getString(1), rs.getInt(2));
-                            overlord.localKey = NxId.valueOf(rs.getString(3));
+                            overlord.authority = Authority.create(Ip.valueOf(rs.getString(1)), rs.getInt(2));
+                            overlord.localKey = Id.valueOf(rs.getString(3));
 
                             OverlordStatus status = new OverlordStatus();
                             status.packageTag = rs.getString(4);
@@ -246,7 +246,7 @@ public class AdminModel extends ApiComponent.Base {
     }
 
     // omitted permissions are not changed
-    public Observable<ApiStatus> justGrant(NxId accessKey, NxId grantKey, Permission.Mask ... permissionMasks) {
+    public Observable<ApiStatus> justGrant(Id accessKey, Id grantKey, Permission.Mask ... permissionMasks) {
         return context.dataSourceProvider.withConnection().map((Connection connection) -> {
             try {
                 connection.setAutoCommit(false);
@@ -289,13 +289,13 @@ public class AdminModel extends ApiComponent.Base {
     }
 
 
-    public Observable<ApiStatus> justDirtyPermissions(NxId accessKey) {
+    public Observable<ApiStatus> justDirtyPermissions(Id accessKey) {
         // TODO currently no caches
         // TODO dirty shared cache
         return Observable.just(ApiStatus.ok());
     }
 
-    public Observable<ApiStatus> justDirtyOverlords(NxId accessKey) {
+    public Observable<ApiStatus> justDirtyOverlords(Id accessKey) {
         // TODO currently no caches
         // TODO dirty shared cache
         // TODO update CloudFront

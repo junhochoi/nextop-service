@@ -2,12 +2,15 @@ package io.nextop.service.dns;
 
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-import io.netty.buffer.Unpooled;
+import com.squareup.pagerduty.incidents.PagerDuty;
+import com.squareup.pagerduty.incidents.Trigger;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.nextop.ApiComponent;
 import io.nextop.ApiContainer;
 import io.nextop.db.DataSourceProvider;
@@ -15,15 +18,20 @@ import io.nextop.http.BasicRouter;
 import io.nextop.http.NettyHttpServer;
 import io.nextop.http.Router;
 import io.nextop.rx.MoreRxOperations;
-import io.nextop.service.NxId;
+import io.nextop.service.Authority;
+import io.nextop.service.Id;
+import io.nextop.service.Ip;
 import io.nextop.service.Permission;
 import io.nextop.service.admin.AdminContext;
 import io.nextop.service.admin.AdminModel;
 import io.nextop.service.log.ServiceLog;
+import io.nextop.service.m.BadAuthority;
 import io.nextop.service.schema.SchemaController;
 import io.nextop.util.CliUtils;
 import io.nextop.util.ConfigWatcher;
 import io.nextop.util.NettyUtils;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
@@ -32,10 +40,9 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import javax.annotation.Nullable;
+import java.io.*;
+import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -50,37 +57,70 @@ public class DnsService extends ApiComponent.Base {
 
     private final Router router() {
         BasicRouter router = new BasicRouter();
-        Object accessKeyMatcher = BasicRouter.var("access-key", segment -> NxId.valueOf(segment));
+        Object accessKeyMatcher = BasicRouter.var("access-key", segment -> Id.valueOf(segment));
 
         Function<Map<String, List<?>>, Map<String, List<?>>> validate = parameters -> {
                 parameters.put("grant-key", ((List<String>) parameters.getOrDefault("grant-key", Collections.emptyList()
-                )).stream().map((String grantKeyString) -> NxId.valueOf(grantKeyString)).collect(Collectors.toList()));
+                )).stream().map((String grantKeyString) -> Id.valueOf(grantKeyString)).collect(Collectors.toList()));
                 return parameters;
             };
+        Function<Map<String, List<?>>, Map<String, List<?>>> validateBadAuthorities = parameters -> {
+            Ip remote = Ip.valueOf((InetAddress) parameters.get(NettyHttpServer.P_REMOTE_ADDRESS).get(0));
 
-        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "overlord"), validate.andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            List<NxId> grantKeys = (List<NxId>) parameters.get("grant-key");
+            FullHttpRequest request = (FullHttpRequest) parameters.get(NettyHttpServer.P_REQUEST).get(0);
+
+            JsonObject bodyObject = new JsonParser().parse(request.content().toString(Charsets.UTF_8)).getAsJsonObject();
+
+            List<BadAuthority> badAuthorities = new LinkedList<>();
+            JsonArray badAuthoritiesArray = bodyObject.get("badAuthorities").getAsJsonArray();
+            for (int i = 0, n = badAuthoritiesArray.size(); i < n; ++i) {
+                JsonObject badAuthorityObject = badAuthoritiesArray.get(i).getAsJsonObject();
+
+                Authority authority = Authority.valueOf(badAuthorityObject.get("authority").getAsString());
+
+                IntSet schemes = new IntOpenHashSet(3);
+                JsonArray schemesArray = badAuthorityObject.get("schemes").getAsJsonArray();
+                for (int j = 0, m = schemesArray.size(); j < m; ++j) {
+                    schemes.add(schemesArray.get(j).getAsInt());
+                }
+
+                BadAuthority badAuthority = new BadAuthority();
+                badAuthority.reporter = remote;
+                badAuthority.authority = authority;
+                badAuthority.schemes = schemes;
+                badAuthorities.add(badAuthority);
+            }
+
+            parameters.put("bad-authorities", badAuthorities);
+
+            return parameters;
+        };
+
+        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "overlord.json"), validate.andThen(parameters -> {
+            Id accessKey = (Id) parameters.get("access-key").get(0);
+            List<Id> grantKeys = (List<Id>) parameters.get("grant-key");
             return getOverlords(accessKey, grantKeys);
         }));
-        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "edge"), validate.andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            List<NxId> grantKeys = (List<NxId>) parameters.get("grant-key");
+        router.add(HttpMethod.GET, Arrays.asList(accessKeyMatcher, "edge.json"), validate.andThen(parameters -> {
+            Id accessKey = (Id) parameters.get("access-key").get(0);
+            List<Id> grantKeys = (List<Id>) parameters.get("grant-key");
             return getEdges(accessKey, grantKeys);
         }));
+        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "edge.json"), validate.andThen(validateBadAuthorities
+        ).andThen(parameters -> {
+            Id accessKey = (Id) parameters.get("access-key").get(0);
+            List<Id> grantKeys = (List<Id>) parameters.get("grant-key");
+            List<BadAuthority> badAuthorities = (List<BadAuthority>) parameters.get("bad-authorities");
+            return postEdges(accessKey, grantKeys, badAuthorities);
+        }));
         router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "overlord"), validate.andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            List<NxId> grantKeys = (List<NxId>) parameters.get("grant-key");
+            Id accessKey = (Id) parameters.get("access-key").get(0);
+            List<Id> grantKeys = (List<Id>) parameters.get("grant-key");
             return postOverlords(accessKey, grantKeys);
         }));
-        router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher, "edge"), validate.andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            List<NxId> grantKeys = (List<NxId>) parameters.get("grant-key");
-            return postEdges(accessKey, grantKeys);
-        }));
         router.add(HttpMethod.POST, Arrays.asList(accessKeyMatcher), validate.andThen(parameters -> {
-            NxId accessKey = (NxId) parameters.get("access-key").get(0);
-            List<NxId> grantKeys = (List<NxId>) parameters.get("grant-key");
+            Id accessKey = (Id) parameters.get("access-key").get(0);
+            List<Id> grantKeys = (List<Id>) parameters.get("grant-key");
             return postAccessKey(accessKey, grantKeys);
         }));
 
@@ -91,12 +131,16 @@ public class DnsService extends ApiComponent.Base {
     private final Scheduler apiScheduler;
     private final Scheduler modelScheduler;
 
+    // FIXME combine upgrade and the DB provider so that the connection is exposed to the outside once the upgrade finishes
     private final DataSourceProvider dataSourceProvider;
     private final SchemaController schemaController;
     private final ConfigWatcher configWatcher;
     private final NettyHttpServer httpServer;
 
     private final AdminContext context;
+
+    @Nullable
+    private PagerDuty pagerDuty = null;
 
 
     DnsService(JsonObject defaultConfigObject, String ... configFiles) {
@@ -147,6 +191,18 @@ public class DnsService extends ApiComponent.Base {
                         },
                         () -> {
                         }),
+                ApiComponent.init("Pager Duty",
+                        statusSink -> {
+                            configWatcher.getMergedObservable().subscribe(configObject -> {
+                                try {
+                                    pagerDuty = PagerDuty.create(configObject.get("pagerduty").getAsJsonObject().get("apiKey").getAsString());
+                                } catch (Exception e) {
+                                    // not configured
+                                }
+                            });
+                        },
+                        () -> {
+                        }),
                 context.init(),
                 httpServer.init());
     }
@@ -154,23 +210,13 @@ public class DnsService extends ApiComponent.Base {
 
     /////// ROUTES ///////
 
-    private Observable<HttpResponse> getOverlords(NxId accessKey, Collection<NxId> grantKeys) {
-        return context.adminModel.requirePermissions(context.adminModel.justOverlords(accessKey), accessKey, grantKeys,
-                Permission.admin.on()).map(overlords -> {
-            // FIXME
-            JsonArray authoritiesArray = new JsonArray();
-            overlords.stream().forEach(overlord -> {
-                authoritiesArray.add(new JsonPrimitive(overlord.authority.toString()));
-            });
-
-            JsonObject returnObject = new JsonObject();
-            returnObject.add("authorities", authoritiesArray);
-
-            return NettyUtils.jsonResponse(returnObject);
-        });
+    private Observable<HttpResponse> getOverlords(Id accessKey, Collection<Id> grantKeys) {
+        // FIXME
+        return context.adminModel.requirePermissions(getEdges(accessKey, grantKeys),
+                accessKey, grantKeys, Permission.admin.on());
     }
 
-    private Observable<HttpResponse> postOverlords(NxId accessKey, Collection<NxId> grantKeys) {
+    private Observable<HttpResponse> postOverlords(Id accessKey, Collection<Id> grantKeys) {
         return context.adminModel.requirePermissions(context.adminModel.justDirtyOverlords(accessKey), accessKey, grantKeys,
                 Permission.admin.on()).map(apiResponse -> {
 
@@ -178,7 +224,7 @@ public class DnsService extends ApiComponent.Base {
         });
     }
 
-    private Observable<HttpResponse> getEdges(NxId accessKey, Collection<NxId> grantKeys) {
+    private Observable<HttpResponse> getEdges(Id accessKey, Collection<Id> grantKeys) {
         return context.adminModel.justOverlords(accessKey).map(overlords -> {
             JsonArray authoritiesArray = new JsonArray();
             overlords.stream().forEach(overlord -> {
@@ -192,12 +238,27 @@ public class DnsService extends ApiComponent.Base {
         });
     }
 
-    private Observable<HttpResponse> postEdges(NxId accessKey, Collection<NxId> grantKeys) {
-        // FIXME
-        return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
+    private Observable<HttpResponse> postEdges(Id accessKey, Collection<Id> grantKeys, Collection<BadAuthority> badAuthorities) {
+        return getEdges(accessKey, grantKeys).doOnSubscribe(() -> {
+            if (null != pagerDuty) {
+                for (BadAuthority badAuthority : badAuthorities) {
+                    Trigger trigger = new Trigger.Builder(String.format("%s reported %s unreachable via DNS",
+                            badAuthority.reporter, badAuthority.authority))
+                            .withIncidentKey(String.format("%s %s", badAuthority.reporter, badAuthority.authority))
+                            .addDetails(ImmutableMap.of(
+                                    "reporterIp", "" + badAuthority.reporter,
+                                    "authority", "" + badAuthority.authority,
+                                    "schemes", badAuthority.schemes.stream().map(Object::toString).collect(Collectors.joining(",")),
+                                    "accessKey", "" + accessKey
+                            ))
+                            .build();
+                    pagerDuty.notify(trigger);
+                }
+            }
+        });
     }
 
-    private Observable<HttpResponse> postAccessKey(NxId accessKey, Collection<NxId> grantKeys) {
+    private Observable<HttpResponse> postAccessKey(Id accessKey, Collection<Id> grantKeys) {
         // FIXME
         return Observable.just(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT));
     }

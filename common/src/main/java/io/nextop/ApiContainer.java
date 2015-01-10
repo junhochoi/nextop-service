@@ -16,7 +16,7 @@ public final class ApiContainer implements ApiComponent.Init, AutoCloseable {
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
-                stop();
+                ApiContainer.this.stop();
             }
         });
     }

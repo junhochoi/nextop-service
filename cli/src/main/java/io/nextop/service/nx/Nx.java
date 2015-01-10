@@ -1,12 +1,15 @@
 package io.nextop.service.nx;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.squareup.pagerduty.incidents.PagerDuty;
+import com.squareup.pagerduty.incidents.Trigger;
 import io.nextop.ApiComponent;
 import io.nextop.ApiContainer;
 import io.nextop.service.Authority;
-import io.nextop.service.NxId;
+import io.nextop.service.Id;
 import io.nextop.service.m.Cloud;
 import io.nextop.util.CliUtils;
 import net.sourceforge.argparse4j.ArgumentParsers;
@@ -41,7 +44,22 @@ public final class Nx extends ApiComponent.Base {
     /* these must block until completed */
 
     public void id() {
-        System.out.printf("%s\n", NxId.create());
+        System.out.printf("%s\n", Id.create());
+
+        // FIXME
+        PagerDuty pagerDuty = PagerDuty.create("5907048d5ed243468f197d7fd53a3939");
+        Trigger trigger = new Trigger.Builder(String.format("%s reported %s unreachable via DNS",
+                "223.41.7.60", String.format("%s:%d", "54.149.233.13", 27000)))
+                .withIncidentKey(String.format("%s %s:%d", "223.41.7.60", "54.149.233.13  ", 27000))
+                .addDetails(ImmutableMap.of(
+                        "clientIp", "223.41.7.60",
+                        "authority", String.format("%s:%d", "54.149.233.13", 27000),
+                        "schemes", "27000;17000",
+                        "accessKey", "d0cdc7556841544e78f34a70c48f8067f9cac7689bedf1e5fde6325974a6a888"
+                ))
+                .build();
+        pagerDuty.notify(trigger);
+
     }
 
     public void addOverlord(Authority authority, Cloud cloud) {

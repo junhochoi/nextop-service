@@ -16,6 +16,8 @@ import rx.Scheduler;
 import rx.Subscription;
 
 import javax.annotation.Nullable;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -28,6 +30,11 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 /** Supports {@link ApiStatus} and {@link ApiException} */
 public final class NettyHttpServer extends ApiComponent.Base {
     private static final Logger log = Logger.getGlobal();
+
+
+    public static final String P_REQUEST = "request";
+    public static final String P_REMOTE_ADDRESS = "remote-address";
+
 
     public static final class Config {
         public int httpPort = -1;
@@ -136,31 +143,40 @@ public final class NettyHttpServer extends ApiComponent.Base {
             //permission.addLast("ssl", new SslHandler(engine));
 
             p.addLast("codec", new HttpServerCodec());
+            p.addLast("aggregator", new HttpObjectAggregator(65536));
             p.addLast("handler", new HttpServerHandler());
         }
     }
 
-    private final class HttpServerHandler extends ChannelHandlerAdapter {
+    private final class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
+
+
         @Override
-        public void channelReadComplete(ChannelHandlerContext ctx) {
-            ctx.flush();
+        public void channelReadComplete(ChannelHandlerContext context) {
+            context.flush();
         }
 
-        // FIXME
+
         @Override
-        public void channelRead(ChannelHandlerContext context, Object m) throws Exception {
-            if (m instanceof HttpRequest) {
-                HttpRequest request = (HttpRequest) m;
+        protected void messageReceived(ChannelHandlerContext context, Object m) throws Exception {
+            if (m instanceof FullHttpRequest) {
+                FullHttpRequest request = (FullHttpRequest) m;
+
 
                 if (is100ContinueExpected(request)) {
                     context.write(new DefaultFullHttpResponse(HTTP_1_1, CONTINUE));
                 }
 
+                InetAddress remoteAddress = ((InetSocketAddress) context.channel().remoteAddress()).getAddress();
+
                 QueryStringDecoder d = new QueryStringDecoder(request.getUri());
+
+                Map<String, List<?>> parameters = new HashMap<>(d.parameters());
+                parameters.put(P_REQUEST, Collections.singletonList(request));
+                parameters.put(P_REMOTE_ADDRESS, Collections.singletonList(remoteAddress));
+
                 HttpMethod method = request.getMethod();
                 List<String> segments = parseSegments(d.path());
-                Map<String, List<?>> parameters = new HashMap<>(d.parameters());
-                parameters.put("request", Collections.singletonList(request));
                 drain(router.route(method, segments, parameters), context, isKeepAlive(request));
             }
         }
