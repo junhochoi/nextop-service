@@ -15,6 +15,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.logging.Logger;
 
+// FIXME see notes in FixedPool
+// FIXME I think Rx is the wrong fit for resource pools
 public class DataSourceProvider extends ApiComponent.Base {
     private static final Logger localLog = Logger.getGlobal();
 

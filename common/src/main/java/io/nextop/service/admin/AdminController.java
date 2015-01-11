@@ -2,7 +2,7 @@ package io.nextop.service.admin;
 
 import io.nextop.ApiComponent;
 import io.nextop.ApiStatus;
-import io.nextop.service.Id;
+import io.nextop.Id;
 import rx.Observable;
 import rx.Scheduler;
 

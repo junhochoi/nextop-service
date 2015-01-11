@@ -30,5 +30,6 @@
     <orderEntry type="library" exported="" name="Gradle: com.squareup.pagerduty:pagerduty-incidents:1.0.1" level="project" />
     <orderEntry type="library" exported="" name="Gradle: com.squareup.retrofit:retrofit:1.6.1" level="project" />
     <orderEntry type="library" exported="" name="Gradle: io.netty:netty-all:5.0.0.Alpha1" level="project" />
+    <orderEntry type="module" module-name="java" exported="" />
   </component>
 </module>

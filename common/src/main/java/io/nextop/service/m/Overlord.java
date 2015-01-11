@@ -1,7 +1,7 @@
 package io.nextop.service.m;
 
-import io.nextop.service.Authority;
-import io.nextop.service.Id;
+import io.nextop.Authority;
+import io.nextop.Id;
 
 import javax.annotation.Nullable;
 

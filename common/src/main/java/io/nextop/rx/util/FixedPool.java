@@ -13,6 +13,14 @@ import rx.subscriptions.Subscriptions;
 import javax.annotation.Nullable;
 import java.util.*;
 
+// FIXME implementing a pool with Rx seems fundamentally wrong
+// FIXME because the subscriber may close the subscription before
+// FIXME passing the value to the end observable;
+// FIXME there is no guarantee that the end observable onNext is called
+// FIXME before unsubscribe from the pool.
+// FIXME Post this example to the mailing list, and see what people say
+// FIXME (brien) I think this pool and DataSourceProvider should go back to the traditional with(closure) interface,
+// FIXME which guaranttes the resource is valid during the closure call
 public class FixedPool<T> implements AutoCloseable {
     private int maxSize;
     private final Func0<T> source;
@@ -124,7 +132,7 @@ public class FixedPool<T> implements AutoCloseable {
     }
 
 
-    /** emitted value is valid for the duration between subscription and onComplete/onError */
+    /** emitted value is valid for the duration between subscription and the first of unsubscribe/onComplete/onError */
     public Observable<T> getSingleObservable() {
         return Observable.create(subscriber -> {
             receive(subscriber);

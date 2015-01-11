@@ -9,7 +9,7 @@ import io.nextop.ApiContainer;
 import io.nextop.http.BasicRouter;
 import io.nextop.http.NettyHttpServer;
 import io.nextop.http.Router;
-import io.nextop.service.Id;
+import io.nextop.Id;
 import io.nextop.service.Permission;
 import io.nextop.util.CliUtils;
 import io.nextop.util.ConfigWatcher;
