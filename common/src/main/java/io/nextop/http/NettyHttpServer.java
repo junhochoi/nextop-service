@@ -10,6 +10,7 @@ import io.netty.handler.codec.http.*;
 import io.nextop.ApiComponent;
 import io.nextop.ApiException;
 import io.nextop.ApiStatus;
+import io.nextop.util.Urls;
 import rx.Observable;
 import rx.Observer;
 import rx.Scheduler;
@@ -176,7 +177,7 @@ public final class NettyHttpServer extends ApiComponent.Base {
                 parameters.put(P_REMOTE_ADDRESS, Collections.singletonList(remoteAddress));
 
                 HttpMethod method = request.getMethod();
-                List<String> segments = parseSegments(d.path());
+                List<String> segments = Urls.parseSegments(d.path());
                 drain(router.route(method, segments, parameters), context, isKeepAlive(request));
             }
         }
@@ -251,36 +252,5 @@ public final class NettyHttpServer extends ApiComponent.Base {
 
 
         }
-    }
-
-
-
-    /** @param path leading '/' may be omitted */
-    private static List<String> parseSegments(String path) {
-        int j;
-        if ('/' == path.charAt(0)) {
-            j = 1;
-        } else {
-            j = 0;
-        }
-
-        final int length = path.length();
-        int n = 0;
-
-        for (int i = j; i <= length; ++i) {
-            if (length == i || '/' == path.charAt(i)) {
-                ++n;
-            }
-        }
-        String[] segments = new String[n];
-        n = 0;
-        for (int i = j; i <= length; ++i) {
-            if (length == i || '/' == path.charAt(i)) {
-                segments[n++] = path.substring(j, i);
-                j = i + 1;
-            }
-        }
-        assert n == segments.length;
-        return Arrays.asList(segments);
     }
 }
