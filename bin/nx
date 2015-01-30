@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+import os
+import argparse
+import nextop
+
+def main():
+	parser = argparse.ArgumentParser(description='nx')
+	parser.add_argument('instance', choices=['local', 'dev', 'prod'])
+	parser.add_argument('actions', nargs=1, choices=['push', 'pull', 'run'])
+	
+	args, subcommand_args = parser.parse_known_args()
+
+	cmds = nextop.nx_cmds(args.instance, subcommand_args)
+	for action in args.actions:
+		if 'push' == action:
+			cmds.instance_runner(cmds.cmd_push)
+		elif 'pull' == action:
+			cmds.instance_runner(cmds.cmd_pull)
+		elif 'run' == action:
+			cmds.instance_runner(cmds.cmd_run)
+
+
+if __name__ == "__main__":
+    main()

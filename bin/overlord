@@ -1,0 +1,35 @@
+#!/usr/local/bin/python
+
+import os
+import argparse
+import nextop
+
+def main():
+	parser = argparse.ArgumentParser(description='overlord')
+	parser.add_argument('instance', choices=['local', 'dev', 'prod'])
+	parser.add_argument('-H', '--host', default='')
+	parser.add_argument('-P', '--port', type=int, default=27000)
+	parser.add_argument('-c', '--local_key', default='')
+	parser.add_argument('-a', '--access_key', default='')
+	parser.add_argument('actions', nargs=1, choices=['push', 'pull', 'start', 'restart', 'stop'])
+	
+	args = parser.parse_args()
+
+	cmds = nextop.overlord_cmds(args.instance, args.host, args.port, args.local_key, args.access_key)
+	for action in args.actions:
+		if 'push' == action:
+			cmds.instance_runner(cmds.cmd_push)
+		elif 'pull' == action:
+			cmds.instance_runner(cmds.cmd_pull)
+		elif 'start' == action:
+			# FIXME needs to use access key
+			cmds.instance_runner(cmds.cmd_start)
+		elif 'restart' == action:
+			cmds.instance_runner(' && '.join([cmds.cmd_stop, cmds.cmd_start]))
+		elif 'stop' == action:
+			# FIXME needs to stop only access key
+			cmds.instance_runner(cmds.cmd_stop)
+
+
+if __name__ == "__main__":
+    main()

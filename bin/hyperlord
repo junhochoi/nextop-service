@@ -1,0 +1,30 @@
+#!/usr/local/bin/python
+
+import os
+import argparse
+import nextop
+
+def main():
+	parser = argparse.ArgumentParser(description='overlord')
+	parser.add_argument('instance', choices=['local', 'dev', 'prod'])
+	parser.add_argument('-P', '--port', type=int, default=2777)
+	parser.add_argument('actions', nargs=1, choices=['push', 'pull', 'start', 'restart', 'stop'])
+
+	args = parser.parse_args()
+
+	cmds = nextop.admin_cmds('hyperlord', args.instance, args.port)
+	for action in args.actions:
+		if 'push' == action:
+			cmds.instance_runner(cmds.cmd_push)
+		elif 'pull' == action:
+			cmds.instance_runner(cmds.cmd_pull)
+		elif 'start' == action:
+			cmds.instance_runner(cmds.cmd_start)
+		elif 'restart' == action:
+			cmds.instance_runner(' && '.join([cmds.cmd_stop, cmds.cmd_start]))
+		elif 'stop' == action:
+			cmds.instance_runner(cmds.cmd_stop)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,13 @@
 Nextop Service
 
+Goals
+=====
+
+- Be able to maintain a Nextop deployment with command line admin tools
+- The Nextop deployment should work across clouds (Azure, AWS, GC)
+- The Nextop deployment should be self-heal and maintain a stable state
+- Dockerized workflows
+
 
 Principles
 ==========
