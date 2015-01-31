@@ -16,5 +16,6 @@ include 'schema'
 
 
 
-include ':nextop-client:java'
-project(':nextop-client:java').projectDir = new File(settingsDir, '../nextop-client/java')
+// FIXME
+// include ':nextop-client:java'
+// project(':nextop-client:java').projectDir = new File(settingsDir, '../nextop-client/java')
