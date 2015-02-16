@@ -1,4 +1,4 @@
 
 dependencies {
-    compile project(':nextop-client:java')
+    compile project(':java-common')
 }

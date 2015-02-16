@@ -16,5 +16,5 @@ sourceSets {
 dependencies {
     compile project(':common')
     compile project(':schema')
-    compile project(':nextop-client:java')
+    compile project(':java-common')
 }

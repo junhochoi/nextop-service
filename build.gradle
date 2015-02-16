@@ -19,7 +19,7 @@ subprojects {
 
     repositories {
         maven {
-            url "https://repository.apache.org"
+            url 'https://repository.apache.org/content/groups/public/'
         }
         mavenCentral()
     }

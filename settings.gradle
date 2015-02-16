@@ -15,7 +15,8 @@ include 'cli'
 include 'schema'
 
 
+include ':java-common'
+project(':java-common').projectDir = new File(settingsDir, '../nextop-client/java-common')
 
-// FIXME
-// include ':nextop-client:java'
-// project(':nextop-client:java').projectDir = new File(settingsDir, '../nextop-client/java')
+include ':org.apache-jarjar'
+project(':org.apache-jarjar').projectDir = new File(settingsDir, '../nextop-client/org.apache-jarjar')

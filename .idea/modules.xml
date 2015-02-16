@@ -6,8 +6,9 @@
       <module fileurl="file://$PROJECT_DIR$/common/common.iml" filepath="$PROJECT_DIR$/common/common.iml" />
       <module fileurl="file://$PROJECT_DIR$/dns/dns.iml" filepath="$PROJECT_DIR$/dns/dns.iml" />
       <module fileurl="file://$PROJECT_DIR$/hyperlord/hyperlord.iml" filepath="$PROJECT_DIR$/hyperlord/hyperlord.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../nextop-client/nextop-client.iml" filepath="$PROJECT_DIR$/../nextop-client/nextop-client.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../nextop-client/java-common/java-common.iml" filepath="$PROJECT_DIR$/../nextop-client/java-common/java-common.iml" />
       <module fileurl="file://$PROJECT_DIR$/nextop-service.iml" filepath="$PROJECT_DIR$/nextop-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../nextop-client/org.apache-jarjar/org.apache-jarjar.iml" filepath="$PROJECT_DIR$/../nextop-client/org.apache-jarjar/org.apache-jarjar.iml" />
       <module fileurl="file://$PROJECT_DIR$/overlord/overlord.iml" filepath="$PROJECT_DIR$/overlord/overlord.iml" />
       <module fileurl="file://$PROJECT_DIR$/schema/schema.iml" filepath="$PROJECT_DIR$/schema/schema.iml" />
     </modules>
