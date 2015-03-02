@@ -408,11 +408,11 @@ public final class Proxy implements Observer<NextopSession> {
 
                 Map<RenderingHints.Key, Object> hints = new HashMap<RenderingHints.Key, Object>(4);
                 switch (layer.quality) {
-                    case Message.LayerInfo.Quality.HIGH:
+                    case HIGH:
                         hints.put(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
                         hints.put(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
                         break;
-                    case Message.LayerInfo.Quality.LOW:
+                    case LOW:
                         hints.put(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                         hints.put(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
                         break;
@@ -448,7 +448,7 @@ public final class Proxy implements Observer<NextopSession> {
                 Message.Builder builder = rawResponse.toBuilder()
                         .setRoute(request.inboxRoute())
                         .setContent(scaledImage);
-                if (layer.hasGroup()) {
+                if (null != layer.groupId) {
                     builder.setGroupId(layer.groupId)
                         .setGroupPriority(layer.groupPriority);
                 }
