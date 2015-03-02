@@ -1,5 +1,6 @@
 
 dependencies {
     compile project(':java-common')
+
     compile 'org.apache.commons:commons-pool2:2.3'
 }

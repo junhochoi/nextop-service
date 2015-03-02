@@ -33,7 +33,7 @@ public class MemoryStorage implements Cache.Storage {
     }
 
     @Override
-    public Observable<byte[]> get(String key) {
+    public Observable<byte[]> get(final String key) {
         return Observable.create(new Observable.OnSubscribe<byte[]>() {
             @Override
             public void call(Subscriber<? super byte[]> subscriber) {

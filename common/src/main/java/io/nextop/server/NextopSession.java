@@ -1,7 +1,7 @@
 package io.nextop.server;
 
 import io.nextop.Id;
-import io.nextop.client.Wire;
+import io.nextop.Wire;
 
 public final class NextopSession {
     public final Id clientId;

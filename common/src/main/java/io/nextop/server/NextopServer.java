@@ -3,11 +3,11 @@ package io.nextop.server;
 import io.nextop.Id;
 import io.nextop.Message;
 import io.nextop.WireValue;
-import io.nextop.client.Wire;
-import io.nextop.client.Wires;
+import io.nextop.Wire;
+import io.nextop.Wires;
 import rx.Observable;
+import rx.Subscriber;
 import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -23,7 +23,7 @@ import java.util.concurrent.Executor;
 // TODO move to nio
 // FIXME(SECURITY) verify the clientID with the private certificate
 // FIXME(SECURITY) not doing this is a huge security hole because cache control relies on an accurate clientID
-public class NextopServer {
+public class NextopServer extends Observable<NextopSession> {
 
     public static final class Config {
         public final int port;
@@ -40,7 +40,7 @@ public class NextopServer {
 
     final Executor workExecutor;
 
-    final Subject publishSession;
+    final PublishSubject<NextopSession> publishSession;
 
 
     @Nullable
@@ -48,15 +48,20 @@ public class NextopServer {
 
 
     public NextopServer(Config config, Executor workExecutor) {
-        this.config = config;
-        this.workExecutor = workExecutor;
-
-        publishSession = PublishSubject.create();
+        this(config, workExecutor, PublishSubject.<NextopSession>create());
     }
 
+    private NextopServer(Config config, Executor workExecutor, final PublishSubject<NextopSession> publishSession) {
+        super(new OnSubscribe<NextopSession>() {
+            @Override
+            public void call(Subscriber<? super NextopSession> subscriber) {
+                publishSession.subscribe(subscriber);
+            }
+        });
 
-    public Observable<NextopSession> getSessionSource() {
-        return publishSession;
+        this.config = config;
+        this.workExecutor = workExecutor;
+        this.publishSession = publishSession;
     }
 
 

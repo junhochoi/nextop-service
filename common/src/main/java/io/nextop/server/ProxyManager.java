@@ -2,6 +2,7 @@ package io.nextop.server;
 
 import io.nextop.Id;
 import rx.Observable;
+import rx.Observer;
 import rx.internal.util.SubscriptionList;
 
 import javax.annotation.Nullable;
@@ -12,7 +13,7 @@ import java.util.concurrent.Executor;
 
 // connects session source(s) to proxies
 // FIXME vacuum / cleanup policy for proxies
-public class ProxyManager {
+public class ProxyManager implements Observer<NextopSession> {
 
     final Executor workExecutor;
     final Cache cache;
@@ -23,9 +24,6 @@ public class ProxyManager {
     final Map<Id, ProxyState> proxyStates = new HashMap<Id, ProxyState>(64);
 
 
-    @Nullable
-    SubscriptionList sessionSubscriptions = null;
-
 
     public ProxyManager(Executor workExecutor, Cache cache) {
         this.workExecutor = workExecutor;
@@ -33,26 +31,8 @@ public class ProxyManager {
     }
 
 
-
-    public void start(Observable<NextopSession> sessionSource) {
-        if (null == sessionSubscriptions) {
-            sessionSubscriptions = new SubscriptionList();
-        }
-
-        sessionSubscriptions.add(sessionSource.subscribe(session -> {
-            onSessionCreated(session);
-        }));
-    }
-
-    public void stop() {
-        if (null != sessionSubscriptions) {
-            sessionSubscriptions.unsubscribe();
-            sessionSubscriptions = null;
-        }
-    }
-
-
-    private void onSessionCreated(NextopSession session) {
+    @Override
+    public void onNext(NextopSession session) {
         ProxyState proxyState;
         synchronized (proxyMutex) {
             proxyState = proxyStates.get(session.clientId);
@@ -66,6 +46,15 @@ public class ProxyManager {
         proxyState.proxy.onNext(session);
     }
 
+    @Override
+    public void onCompleted() {
+        // Do nothing
+    }
+
+    @Override
+    public void onError(Throwable e) {
+        // Do nothing
+    }
 
 
     private static final class ProxyState {

@@ -182,7 +182,7 @@ public class AdminModel extends ApiComponent.Base {
                         " SET access_key = NULL, local_key = NULL" +
                         " WHERE public_host = ? AND Overlord.port = ?");
                 try {
-                    selectLocalKey.setString(1, authority.host.toString());
+                    selectLocalKey.setString(1, authority.getHost());
                     selectLocalKey.setInt(2, authority.port);
 
                     int c = selectLocalKey.executeUpdate();

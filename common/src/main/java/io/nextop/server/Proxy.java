@@ -7,7 +7,7 @@ import io.nextop.WireValue;
 import io.nextop.client.MessageContext;
 import io.nextop.client.MessageContexts;
 import io.nextop.client.MessageControlState;
-import io.nextop.client.Wire;
+import io.nextop.Wire;
 import io.nextop.client.node.Head;
 import io.nextop.client.node.http.HttpNode;
 import io.nextop.client.node.nextop.NextopNode;
@@ -77,8 +77,7 @@ public final class Proxy implements Observer<NextopSession> {
         MessageControlState mcs = new MessageControlState(context);
 
         // FIXME config
-        NextopNode.Config inConfig = new NextopNode.Config();
-        NextopNode inNextop = new NextopNode(inConfig);
+        NextopNode inNextop = new NextopNode();
         // this is connected via #onSessionCreated
         inNextop.setWireFactory(new SessionWireFactory());
 
