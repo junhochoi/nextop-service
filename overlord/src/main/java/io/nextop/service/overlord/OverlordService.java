@@ -150,7 +150,7 @@ public class OverlordService extends ApiComponent.Base {
     }
 
     private void startProxy(int port) {
-        Executor workExecutor = Executors.newFixedThreadPool(8);
+        Executor workExecutor = Executors.newFixedThreadPool(16);
 
         Cache cache = new Cache(new MemoryStorage(1024 * 1024 * 1024));
         ProxyManager proxyManager = new ProxyManager(workExecutor, cache);

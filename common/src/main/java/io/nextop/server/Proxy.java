@@ -123,7 +123,12 @@ public final class Proxy implements Observer<NextopSession> {
             inSubscription = in.defaultReceive().subscribe(new Action1<Message>() {
                 @Override
                 public void call(Message message) {
-                    proxy(message);
+                    try {
+                        proxy(message);
+                    } catch (Throwable t) {
+                        // FIXME log
+                        t.printStackTrace();
+                    }
                 }
             });
         }
@@ -142,7 +147,11 @@ public final class Proxy implements Observer<NextopSession> {
     /////// PROXY PIPELINE ///////
 
     void proxy(Message request) {
-        proxyProbeCache(request);
+        System.out.printf("Start proxy for %s\n", request);
+
+        // FIXME
+//        proxyProbeCache(request);
+        proxyForward(request);
     }
 
     void proxyProbeCache(final Message request) {
@@ -151,16 +160,19 @@ public final class Proxy implements Observer<NextopSession> {
             @Override
             public void onNext(final Message response) {
                 // send back
+                System.out.printf("Cache hit for %s -> %s\n", request, response);
                 proxyNextToSender(request, response);
             }
 
             @Override
             public void onCompleted() {
+                System.out.printf("Cache complete for %s\n", request);
                 proxyCompleteToSender(request);
             }
 
             @Override
             public void onError(Throwable e) {
+                System.out.printf("Cache miss for %s\n", request);
                 // miss
                 proxyForward(request);
             }
@@ -171,50 +183,106 @@ public final class Proxy implements Observer<NextopSession> {
         // FIXME need an in flight manager here. Attach to an in-flight request if in-flight
         // FIXME receive the processed results of the in-flight request
 
+        System.out.printf("Forward %s\n", request);
+
         out.send(request);
         // FIXME track this subscription, attach to the request
         Subscription s = out.receive(request.inboxRoute()).subscribe(new Observer<Message>() {
-            Observable<Message> replayResponses = Observable.empty();
+//            Observable<Message> replayResponses = Observable.empty();
 
             @Override
             public void onNext(Message rawResponse) {
-                ReplaySubject<Message> subject = ReplaySubject.create();
-                replayResponses = replayResponses.concatWith(subject);
+//                System.out.printf("Receive raw response for %s -> %s\n", request, rawResponse);
+//
+//                ReplaySubject<Message> subject = ReplaySubject.create();
+//                replayResponses = replayResponses.concatWith(subject);
+//
+//                // immediately forward
+//                subject.observeOn(scheduler).subscribe(response -> proxyNextToSender(request, response));
+////
+//                proxyProcessRawResponse(request, rawResponse, subject);
 
-                // immediately forward
-                subject.observeOn(scheduler).subscribe(response -> proxyNextToSender(request, response));
+                // FIXME
+//                rawResponse.toBuilder().setRoute(request.inboxRoute()).build();
+                proxyNextToSender(request, rawResponse.toBuilder().setRoute(request.inboxRoute()).build());
+//                cache.add(clientId, request, new Message[]{rawResponse});
 
-                proxyProcessRawResponse(request, rawResponse, subject);
+
+//                Observer<Message> r = new Observer<Message>() {
+//                    @Override
+//                    public void onNext(Message response) {
+//
+////                        Message response = _response.toBuilder().setRoute(request.inboxRoute()).build();
+//
+//                        System.out.printf("Process complete %s -> %s\n", request, response);
+//                        // FIXME super broken but gets it working
+//                        // FIXME is create workder broken? exhaust workers or something?
+////                        scheduler.createWorker().schedule(() -> {
+//                            try {
+//                                proxyNextToSender(request, response);
+//                                cache.add(clientId, request, new Message[]{response});
+//                                proxyCompleteToSender(request);
+//                            } catch (Throwable t) {
+//                                // FIXME log
+//                                t.printStackTrace();
+//                            }
+////                        });
+//                    }
+//
+//                    @Override
+//                    public void onCompleted() {
+//                    }
+//
+//                    @Override
+//                    public void onError(Throwable e) {
+//                        // FIXME log
+//                        e.printStackTrace();
+//                        proxyErrorToSender(request);
+//                    }
+//                };
+//                try {
+//                    proxyProcessRawResponse(request, rawResponse, r);
+//                } catch (Throwable t) {
+//                    // FIXME log
+//                    t.printStackTrace();
+//                }
             }
 
             @Override
             public void onCompleted() {
-                replayResponses.observeOn(scheduler).doOnCompleted(() -> {
-                    proxyCompleteToSender(request);
-                }).subscribe(new Observer<Message>() {
-                    // add to cache
-                    final List<Message> responses = new ArrayList<Message>(4);
+//                replayResponses.observeOn(scheduler).subscribe(new Observer<Message>() {
+//                    // add to cache
+//                    final List<Message> responses = new ArrayList<Message>(4);
+//
+//                    @Override
+//                    public void onNext(Message message) {
+//                        responses.add(message);
+//                    }
+//
+//                    @Override
+//                    public void onCompleted() {
+//                        proxyCompleteToSender(request);
+//
+//                        cache.add(clientId, request,
+//                                responses.toArray(new Message[responses.size()]));
+//                    }
+//
+//                    @Override
+//                    public void onError(Throwable e) {
+//                        // FIXME log
+//                        e.printStackTrace();
+//                        proxyErrorToSender(request);
+//                    }
+//                });
 
-                    @Override
-                    public void onNext(Message message) {
-                        responses.add(message);
-                    }
-
-                    @Override
-                    public void onCompleted() {
-                        cache.add(clientId, request,
-                                responses.toArray(new Message[responses.size()]));
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        // FIXME
-                    }
-                });
+                // FIXME
+                proxyCompleteToSender(request);
             }
 
             @Override
             public void onError(Throwable e) {
+                // FIXME log
+                e.printStackTrace();
                 proxyErrorToSender(request);
             }
         });
@@ -223,6 +291,8 @@ public final class Proxy implements Observer<NextopSession> {
     /** @param responseCallback must be thread-safe. It will be called on one executor thread. */
     void proxyProcessRawResponse(Message request, Message rawResponse, Observer<Message> responseCallback) {
         // process the raw response differently depending on type type
+
+        System.out.printf("Process raw response for %s -> %s\n", request, rawResponse);
 
         @Nullable WireValue contentValue = rawResponse.getContent();
         if (null == contentValue) {
@@ -243,7 +313,6 @@ public final class Proxy implements Observer<NextopSession> {
                     }
                     break;
                 }
-
                 default:
                     responseCallback.onNext(rawResponse);
                     responseCallback.onCompleted();
@@ -254,15 +323,20 @@ public final class Proxy implements Observer<NextopSession> {
 
 
     void proxyNextToSender(Message request, Message response) {
-        assert response.route.equals(request.inboxRoute());
+        System.out.printf("Next %s -> %s\n", request, response);
 
+//        if (!request.inboxRoute().equals(response.route)) {
+//            response = response.toBuilder().setRoute(request.inboxRoute()).build();
+//        }
         in.send(response);
     }
     void proxyCompleteToSender(Message request) {
+        System.out.printf("Complete %s\n", request);
         in.complete(Message.newBuilder().setRoute(request.inboxRoute()).build());
 
     }
     void proxyErrorToSender(Message request) {
+        System.out.printf("Error %s\n", request);
         in.error(Message.newBuilder().setRoute(request.inboxRoute()).build());
     }
 
@@ -445,7 +519,7 @@ public final class Proxy implements Observer<NextopSession> {
 
 
                 Message.Builder builder = rawResponse.toBuilder()
-                        .setRoute(request.inboxRoute())
+//                        .setRoute(request.inboxRoute())
                         .setContent(scaledImage);
                 if (null != layer.groupId) {
                     builder.setGroupId(layer.groupId)

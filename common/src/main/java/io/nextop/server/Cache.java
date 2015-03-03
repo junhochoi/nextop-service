@@ -56,14 +56,17 @@ public final class Cache {
             return Observable.error(null);
         }
 
+        System.out.printf("Cache probe %s\n", Arrays.toString(orderedKeys));
         Observable<byte[]> cacheHit = storage.get(orderedKeys[0]);
         for (int i = 1, n = orderedKeys.length; i < n; ++i) {
-            cacheHit = cacheHit.onErrorResumeNext(storage.get(orderedKeys[1]));
+            cacheHit = cacheHit.onErrorResumeNext(storage.get(orderedKeys[i]));
         }
 
         return cacheHit.flatMap(new Func1<byte[], Observable<Message>>() {
             @Override
             public Observable<Message> call(byte[] bytes) {
+                System.out.printf("Cache hit %s\n", Arrays.toString(orderedKeys));
+
                 Message[] responses = decode(bytes);
                 // reset the routes to match the request
                 for (int i = 0, n = responses.length; i < n; ++i) {
@@ -77,11 +80,15 @@ public final class Cache {
     }
 
     public void add(Id clientId, Message request, Message[] responses) {
+        System.out.printf("Cache add %s\n", request);
+
         if (!isCacheableRequest(request)) {
+            System.out.printf("Cache add NOT CACHEABLE %s\n", request);
             return;
         }
         for (Message response : responses) {
             if (!isCacheableResponse(response)) {
+                System.out.printf("Cache add NOT CACHEABLE %s -> %s\n", request, response);
                 return;
             }
         }
@@ -90,11 +97,15 @@ public final class Cache {
         try {
             bytes = encode(responses);
         } catch (EncodeFailedException e) {
+            // FIXME log
+            e.printStackTrace();
             // can't store this in the cache; abort
             return;
         }
 
-        storage.put(createKey(clientId, request, responses), bytes);
+        String key = createKey(clientId, request, responses);
+        System.out.printf("Cache put %s\n", key);
+        storage.put(key, bytes);
     }
 
 
@@ -112,14 +123,24 @@ public final class Cache {
 
         // FIXME this is so broken. needs at least URI and layer info
         // for now, just use a route
-        return new String[]{request.toUriString()};
+        try {
+            return new String[]{request.toUriString()};
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
     private String createKey(Id clientId, Message request, Message[] responses) {
         // FIXME(SECURITY) respect Cache-Control header on response and request
 
         // FIXME this is so broken. needs at least URI and layer info
         // for now, just use a route
-        return request.toUriString();
+        try {
+            return request.toUriString();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 
 

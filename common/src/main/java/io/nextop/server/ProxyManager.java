@@ -39,7 +39,9 @@ public class ProxyManager implements Observer<NextopSession> {
         this.workExecutor = workExecutor;
         this.cache = cache;
 
-        scheduler = MoreSchedulers.serial(workExecutor);
+        // FIXME
+        scheduler = MoreSchedulers.serial();
+                //MoreSchedulers.serial(workExecutor);
         out = createOutHead();
 
         out.init(null);
@@ -49,7 +51,7 @@ public class ProxyManager implements Observer<NextopSession> {
         MessageControlState mcs = new MessageControlState(context);
 
         // FIXME config
-        HttpNode.Config outConfig = new HttpNode.Config("Nextop", 8);
+        HttpNode.Config outConfig = new HttpNode.Config("Nextop", 24);
         HttpNode outHttp = new HttpNode(outConfig);
 
         return Head.create(context, mcs, outHttp, scheduler);
