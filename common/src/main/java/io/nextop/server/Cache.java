@@ -112,14 +112,14 @@ public final class Cache {
 
         // FIXME this is so broken. needs at least URI and layer info
         // for now, just use a route
-        return new String[]{request.route.toString()};
+        return new String[]{request.toUriString()};
     }
     private String createKey(Id clientId, Message request, Message[] responses) {
         // FIXME(SECURITY) respect Cache-Control header on response and request
 
         // FIXME this is so broken. needs at least URI and layer info
         // for now, just use a route
-        return request.route.toString();
+        return request.toUriString();
     }
 
 
