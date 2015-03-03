@@ -6,6 +6,7 @@ import io.nextop.service.m.Overlord;
 import io.nextop.service.m.OverlordStatus;
 import io.nextop.util.DbUtils;
 import rx.Observable;
+import rx.functions.Func1;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -99,79 +100,84 @@ public class AdminModel extends ApiComponent.Base {
     //
 
     public Observable<Overlord> justCreateOverlord(Id accessKey) {
-        return context.dataSourceProvider.withConnection().map((Connection connection) -> {
-            Id localKey = Id.create();
+        Func1<Connection, Overlord> f = new Func1<Connection, Overlord>() {
+            @Override
+            public Overlord call(Connection connection) {
+                Id localKey = Id.create();
 
-            try {
-                // retry is needed when the free slot from the transaction is taken before the transaction commits
-                for (; ; ) {
-                    try {
-                        connection.setAutoCommit(false);
+                try {
+                    // retry is needed when the free slot from the transaction is taken before the transaction commits
+                    for (; ; ) {
                         try {
-                            PreparedStatement updateOverlord = connection.prepareStatement("UPDATE Overlord SET access_key = ?, local_key = ?" +
-                                    " WHERE access_key IS NULL" +
-                                    " LIMIT 1");
+                            connection.setAutoCommit(false);
                             try {
-                                updateOverlord.setString(1, accessKey.toString());
-                                updateOverlord.setString(2, localKey.toString());
-
-                                int c = updateOverlord.executeUpdate();
-                                assert c <= 1;
-                                if (1 != c) {
-                                    connection.rollback();
-                                    // FIXME log
-                                    throw ApiException.internalError();
-                                }
-                            } finally {
-                                updateOverlord.close();
-                            }
-
-
-                            Authority authority;
-                            // find the authority
-                            PreparedStatement selectAuthority = connection.prepareStatement("SELECT Overlord.public_host, Overlord.port FROM Overlord" +
-                                    " WHERE access_key = ? AND local_key = ?");
-                            try {
-                                selectAuthority.setString(1, accessKey.toString());
-                                selectAuthority.setString(2, localKey.toString());
-
-                                ResultSet rs = selectAuthority.executeQuery();
+                                PreparedStatement updateOverlord = connection.prepareStatement("UPDATE Overlord SET access_key = ?, local_key = ?" +
+                                        " WHERE access_key IS NULL" +
+                                        " LIMIT 1");
                                 try {
-                                    assert DbUtils.Asserts.columnNames(rs,
-                                            "public_host",
-                                            "port");
-                                    if (!rs.next()) {
-                                        // FIXME log this
+                                    updateOverlord.setString(1, accessKey.toString());
+                                    updateOverlord.setString(2, localKey.toString());
+
+                                    int c = updateOverlord.executeUpdate();
+                                    assert c <= 1;
+                                    if (1 != c) {
+                                        connection.rollback();
+                                        // FIXME log
                                         throw ApiException.internalError();
-                                    } else {
-                                        authority = Authority.create(Ip.valueOf(rs.getString(1)), rs.getInt(2));
                                     }
                                 } finally {
-                                    rs.close();
+                                    updateOverlord.close();
                                 }
+
+
+                                Authority authority;
+                                // find the authority
+                                PreparedStatement selectAuthority = connection.prepareStatement("SELECT Overlord.public_host, Overlord.port FROM Overlord" +
+                                        " WHERE access_key = ? AND local_key = ?");
+                                try {
+                                    selectAuthority.setString(1, accessKey.toString());
+                                    selectAuthority.setString(2, localKey.toString());
+
+                                    ResultSet rs = selectAuthority.executeQuery();
+                                    try {
+                                        assert DbUtils.Asserts.columnNames(rs,
+                                                "public_host",
+                                                "port");
+                                        if (!rs.next()) {
+                                            // FIXME log this
+                                            throw ApiException.internalError();
+                                        } else {
+                                            authority = Authority.create(Ip.valueOf(rs.getString(1)), rs.getInt(2));
+                                        }
+                                    } finally {
+                                        rs.close();
+                                    }
+                                } finally {
+                                    selectAuthority.close();
+                                }
+
+
+                                Overlord overlord = new Overlord();
+                                overlord.authority = authority;
+                                overlord.localKey = localKey;
+                                return overlord;
                             } finally {
-                                selectAuthority.close();
+                                // implicitly commit
+                                connection.setAutoCommit(true);
                             }
-
-
-                            Overlord overlord = new Overlord();
-                            overlord.authority = authority;
-                            overlord.localKey = localKey;
-                            return overlord;
-                        } finally {
-                            // implicitly commit
-                            connection.setAutoCommit(true);
+                        } catch (SQLException e) {
+                            connection.rollback();
+                            // try again
                         }
-                    } catch (SQLException e) {
-                        connection.rollback();
-                        // try again
                     }
+                } catch (SQLException e) {
+                    // FIXME log
+                    throw new ApiException(e);
                 }
-            } catch (SQLException e) {
-                // FIXME log
-                throw new ApiException(e);
             }
-        }).take(1);
+        };
+
+        return context.dataSourceProvider.withConnection().map(f).take(1);
     }
 
     public Observable<ApiStatus> justRemoveOverlord(Authority authority) {
@@ -213,6 +219,50 @@ public class AdminModel extends ApiComponent.Base {
                 try {
                     selectOverlord.setString(1, accessKey.toString());
 
+                    ResultSet rs = selectOverlord.executeQuery();
+                    try {
+                        assert DbUtils.Asserts.columnNames(rs,
+                                "public_host",
+                                "port",
+                                "local_key",
+                                "package_tag",
+                                "monitor_up",
+                                "terminating");
+                        while (rs.next()) {
+                            Overlord overlord = new Overlord();
+                            overlord.authority = Authority.create(Ip.valueOf(rs.getString(1)), rs.getInt(2));
+                            overlord.localKey = Id.valueOf(rs.getString(3));
+
+                            OverlordStatus status = new OverlordStatus();
+                            status.packageTag = rs.getString(4);
+                            status.monitorUp = rs.getBoolean(5);
+                            status.terminating = rs.getBoolean(6);
+                            overlord.status = status;
+
+                            overlords.add(overlord);
+                        }
+                    } finally {
+                        rs.close();
+                    }
+                } finally {
+                    selectOverlord.close();
+                }
+            } catch (SQLException e) {
+                throw new ApiException(e);
+            }
+
+            return overlords;
+        }).take(1);
+    }
+
+    public Observable<Collection<Overlord>> justOverlords() {
+        return context.dataSourceProvider.withConnection().map((Connection connection) -> {
+            Collection<Overlord> overlords = new ArrayList<Overlord>(16);
+            try {
+                PreparedStatement selectOverlord = connection.prepareStatement("SELECT Overlord.public_host, Overlord.port, Overlord.local_key," +
+                        " OverlordStatus.package_tag, OverlordStatus.monitor_up, OverlordStatus.terminating FROM Overlord" +
+                        " LEFT JOIN OverlordStatus ON Overlord.local_key = OverlordStatus.local_key");
+                try {
                     ResultSet rs = selectOverlord.executeQuery();
                     try {
                         assert DbUtils.Asserts.columnNames(rs,

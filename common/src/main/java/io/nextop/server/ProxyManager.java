@@ -77,6 +77,8 @@ public class ProxyManager implements Observer<NextopSession> {
                 proxyState = new ProxyState(proxy);
             } // TODO else update stats
         }
+
+        System.out.printf("NEXT PROXY SESSION\n");
         proxyState.proxy.onNext(session);
     }
 

@@ -7,7 +7,7 @@
 -- e.g. scale out of the capacity of the system adds entries here
 CREATE TABLE Overlord (public_host VARCHAR(32) NOT NULL, 
 	port SMALLINT UNSIGNED,
-	cloud ENUM('aws', 'gce', 'ma') NOT NULL,
+	cloud ENUM('aws', 'gcp', 'ma', 'other') NOT NULL,
 	access_key CHAR(64) NULL DEFAULT NULL, 
 	local_key CHAR(64) NULL DEFAULT NULL,
 	PRIMARY KEY (public_host, port));

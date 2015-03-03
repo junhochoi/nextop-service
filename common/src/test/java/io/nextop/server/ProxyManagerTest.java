@@ -133,7 +133,7 @@ public class ProxyManagerTest extends TestCase {
 
 
         @Override
-        public void run() throws Exception {
+        protected void run() throws Exception {
             final Id clientId = Id.create();
 
 
@@ -209,7 +209,7 @@ public class ProxyManagerTest extends TestCase {
         }
 
         @Override
-        public void check() throws Exception {
+        protected void check() throws Exception {
             assertEquals(2 * send.size(), receive.size());
             // FIXME test content
         }

@@ -31,7 +31,7 @@ public final class Cache {
     final GenericObjectPool<ByteBuffer> encodingBufferPool;
 
 
-    Cache(Storage storage) {
+    public Cache(Storage storage) {
         this.storage = storage;
 
 

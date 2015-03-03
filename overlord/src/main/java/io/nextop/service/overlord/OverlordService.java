@@ -3,6 +3,7 @@ package io.nextop.service.overlord;
 import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.squareup.pagerduty.incidents.PagerDuty;
 import io.netty.handler.codec.http.*;
 import io.nextop.ApiComponent;
 import io.nextop.ApiContainer;
@@ -10,6 +11,10 @@ import io.nextop.http.BasicRouter;
 import io.nextop.http.NettyHttpServer;
 import io.nextop.http.Router;
 import io.nextop.Id;
+import io.nextop.server.Cache;
+import io.nextop.server.NextopServer;
+import io.nextop.server.ProxyManager;
+import io.nextop.server.cache.MemoryStorage;
 import io.nextop.service.Permission;
 import io.nextop.util.CliUtils;
 import io.nextop.util.ConfigWatcher;
@@ -25,6 +30,7 @@ import rx.schedulers.Schedulers;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -126,12 +132,37 @@ public class OverlordService extends ApiComponent.Base {
                     return config;
                 }));
 
+        // FIXME need to redo the component framework to use a normal blocking init
+
         metrics = new OverlordMetrics();
 
         init = ApiComponent.layerInit(configWatcher.init(),
-                httpServer.init());
+                httpServer.init(),
+                ApiComponent.init("NextopServer",
+                        statusSink -> {
+                            configWatcher.getMergedObservable().subscribe(configObject -> {
+                                int nextopPort = configObject.get("nextop").getAsJsonObject().get("port").getAsInt();
+                                startProxy(nextopPort);
+                            });
+                        },
+                        () -> {
+                        }));
     }
 
+    private void startProxy(int port) {
+        Executor workExecutor = Executors.newFixedThreadPool(8);
+
+        Cache cache = new Cache(new MemoryStorage(1024 * 1024 * 1024));
+        ProxyManager proxyManager = new ProxyManager(workExecutor, cache);
+
+        NextopServer.Config nextopConfig = new NextopServer.Config(port, 1024);
+        NextopServer nextopServer = new NextopServer(nextopConfig, workExecutor);
+
+        nextopServer.subscribe(proxyManager);
+
+        proxyManager.start();
+        nextopServer.start();
+    }
 
 
     /////// ROUTES ///////

@@ -1,10 +1,6 @@
 package io.nextop.server;
 
-import io.nextop.Id;
-import io.nextop.Message;
-import io.nextop.WireValue;
-import io.nextop.Wire;
-import io.nextop.Wires;
+import io.nextop.*;
 import rx.Observable;
 import rx.Subscriber;
 import rx.subjects.PublishSubject;
@@ -13,6 +9,8 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -29,7 +27,7 @@ public class NextopServer extends Observable<NextopSession> {
         public final int port;
         public final int backlog;
 
-        Config(int port, int backlog) {
+        public Config(int port, int backlog) {
             this.port = port;
             this.backlog = backlog;
         }
@@ -101,10 +99,13 @@ public class NextopServer extends Observable<NextopSession> {
 
         @Override
         public void run() {
+            System.out.printf("STARTING CONTROL LOOPER ON port %d\n", config.port);
+
             try {
                 serverSocket = new ServerSocket(config.port, config.backlog);
             } catch (Exception e) {
                 // FIXME log
+                e.printStackTrace();
                 active = false;
                 return;
             }
@@ -112,13 +113,16 @@ public class NextopServer extends Observable<NextopSession> {
                 while (active) {
                     Socket socket;
                     try {
+                        System.out.printf("WAITING FOR SOCKET\n");
                         socket = serverSocket.accept();
+                        // socket.setTcpNoDelay(false);
                     } catch (IOException e) {
                         // FIXME log
                         // fatal
                         active = false;
                         return;
                     }
+                    System.out.printf("GOT SOCKET\n");
 
                     workExecutor.execute(new GreetingWorker(socket));
                 }
@@ -151,12 +155,20 @@ public class NextopServer extends Observable<NextopSession> {
         public void run() {
             try {
                 try {
-                    readGreeting(socket.getInputStream());
-                    writeGreetingResponse(socket.getOutputStream());
+
+                    {
+                        long startNanos = System.nanoTime();
+                        System.out.printf("READ GREETING\n");
+                        readGreeting(socket.getInputStream());
+                        System.out.printf("WRITE GREETING\n");
+                        writeGreetingResponse(socket.getOutputStream());
+
+                        System.out.printf("Greeting took %.3fms\n", ((System.nanoTime() - startNanos) / 1000) / 1000.f);
+                    }
 
                     Socket tlsSocket = startTls(socket);
 
-                    Wire wire = Wires.io(tlsSocket.getInputStream(), tlsSocket.getOutputStream());
+                    Wire wire = Wires.io(tlsSocket);
 
                     // at this point the session is verified and active
                     publishSession.onNext(new NextopSession(clientId, sessionId, wire));
@@ -206,6 +218,7 @@ public class NextopServer extends Observable<NextopSession> {
         /** pair to {@link NextopClientWireFactoryNode#readGreetingResponse} */
         private void writeGreetingResponse(OutputStream os) throws IOException {
             Message greeting = Message.newBuilder()
+                    .setRoute(Route.create(Route.Target.valueOf("PUT /greeting-response"), Route.LOCAL))
                     .set("sessionId", sessionId)
                     .build();
 

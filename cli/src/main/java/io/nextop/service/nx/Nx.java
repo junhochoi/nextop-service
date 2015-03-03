@@ -46,20 +46,19 @@ public final class Nx extends ApiComponent.Base {
     public void id() {
         System.out.printf("%s\n", Id.create());
 
-        // FIXME
-        PagerDuty pagerDuty = PagerDuty.create("5907048d5ed243468f197d7fd53a3939");
-        Trigger trigger = new Trigger.Builder(String.format("%s reported %s unreachable via DNS",
-                "223.41.7.60", String.format("%s:%d", "54.149.233.13", 27000)))
-                .withIncidentKey(String.format("%s %s:%d", "223.41.7.60", "54.149.233.13  ", 27000))
-                .addDetails(ImmutableMap.of(
-                        "clientIp", "223.41.7.60",
-                        "authority", String.format("%s:%d", "54.149.233.13", 27000),
-                        "schemes", "27000;17000",
-                        "accessKey", "d0cdc7556841544e78f34a70c48f8067f9cac7689bedf1e5fde6325974a6a888"
-                ))
-                .build();
-        pagerDuty.notify(trigger);
-
+//        // FIXME
+//        PagerDuty pagerDuty = PagerDuty.create("5907048d5ed243468f197d7fd53a3939");
+//        Trigger trigger = new Trigger.Builder(String.format("%s reported %s unreachable via DNS",
+//                "223.41.7.60", String.format("%s:%d", "54.149.233.13", 27000)))
+//                .withIncidentKey(String.format("%s %s:%d", "223.41.7.60", "54.149.233.13  ", 27000))
+//                .addDetails(ImmutableMap.of(
+//                        "clientIp", "223.41.7.60",
+//                        "authority", String.format("%s:%d", "54.149.233.13", 27000),
+//                        "schemes", "27000;17000",
+//                        "accessKey", "d0cdc7556841544e78f34a70c48f8067f9cac7689bedf1e5fde6325974a6a888"
+//                ))
+//                .build();
+//        pagerDuty.notify(trigger);
     }
 
     public void addOverlord(Authority authority, Cloud cloud) {

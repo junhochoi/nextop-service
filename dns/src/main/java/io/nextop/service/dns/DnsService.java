@@ -10,21 +10,18 @@ import com.google.gson.JsonPrimitive;
 import com.squareup.pagerduty.incidents.PagerDuty;
 import com.squareup.pagerduty.incidents.Trigger;
 import io.netty.handler.codec.http.*;
-import io.nextop.ApiComponent;
-import io.nextop.ApiContainer;
+import io.nextop.*;
 import io.nextop.db.DataSourceProvider;
 import io.nextop.http.BasicRouter;
 import io.nextop.http.NettyHttpServer;
 import io.nextop.http.Router;
 import io.nextop.rx.MoreRxOperations;
-import io.nextop.Authority;
-import io.nextop.Id;
-import io.nextop.Ip;
 import io.nextop.service.Permission;
 import io.nextop.service.admin.AdminContext;
 import io.nextop.service.admin.AdminModel;
 import io.nextop.service.log.ServiceLog;
 import io.nextop.service.m.BadAuthority;
+import io.nextop.service.m.Overlord;
 import io.nextop.service.schema.SchemaController;
 import io.nextop.util.CliUtils;
 import io.nextop.util.ConfigWatcher;
@@ -40,7 +37,10 @@ import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
 import javax.annotation.Nullable;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -224,7 +224,12 @@ public class DnsService extends ApiComponent.Base {
     }
 
     private Observable<HttpResponse> getEdges(Id accessKey, Collection<Id> grantKeys) {
-        return context.adminModel.justOverlords(accessKey).map(overlords -> {
+        Observable<Collection<Overlord>> overlordSource;
+        // FIXME
+        // FIXME for now, share overlords between access keys
+//        context.adminModel.justOverlords(accessKey);
+        overlordSource = context.adminModel.justOverlords();
+        return overlordSource.map(overlords -> {
             JsonArray authoritiesArray = new JsonArray();
             overlords.stream().forEach(overlord -> {
                 authoritiesArray.add(new JsonPrimitive(overlord.authority.toString()));
