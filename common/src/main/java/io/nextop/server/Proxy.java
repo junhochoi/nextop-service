@@ -1,17 +1,11 @@
 package io.nextop.server;
 
-import io.nextop.EncodedImage;
-import io.nextop.Id;
-import io.nextop.Message;
-import io.nextop.WireValue;
+import io.nextop.*;
 import io.nextop.client.MessageContext;
 import io.nextop.client.MessageContexts;
 import io.nextop.client.MessageControlState;
-import io.nextop.Wire;
 import io.nextop.client.node.Head;
-import io.nextop.client.node.http.HttpNode;
 import io.nextop.client.node.nextop.NextopNode;
-import io.nextop.rx.MoreSchedulers;
 import io.nextop.util.NoCopyByteArrayOutputStream;
 import rx.Observable;
 import rx.Observer;
@@ -21,12 +15,18 @@ import rx.functions.Action1;
 import rx.subjects.ReplaySubject;
 
 import javax.annotation.Nullable;
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -54,15 +54,17 @@ public final class Proxy implements Observer<NextopSession> {
     Subscription inSubscription = null;
 
 
-    public Proxy(Id clientId, Executor workExecutor, Cache cache) {
+    public Proxy(Scheduler scheduler, Head out, Id clientId, Executor workExecutor, Cache cache) {
+        this.scheduler = scheduler;
+        this.out = out;
+
         this.clientId = clientId;
         this.workExecutor = workExecutor;
         this.cache = cache;
 
-        scheduler = MoreSchedulers.serial(workExecutor);
-
         in = createInHead();
-        out = createOutHead();
+
+        in.init(null);
     }
     private Head createInHead() {
         class SessionWireFactory implements Wire.Factory {
@@ -83,17 +85,6 @@ public final class Proxy implements Observer<NextopSession> {
 
         return Head.create(context, mcs, inNextop, scheduler);
     }
-    private Head createOutHead() {
-        MessageContext context = MessageContexts.create(workExecutor);
-        MessageControlState mcs = new MessageControlState(context);
-
-        // FIXME config
-        HttpNode.Config outConfig = new HttpNode.Config("Nextop", 8);
-        HttpNode outHttp = new HttpNode(outConfig);
-
-        return Head.create(context, mcs, outHttp, scheduler);
-    }
-
 
 
     /////// Observable ///////
@@ -127,6 +118,8 @@ public final class Proxy implements Observer<NextopSession> {
 
     public void start() {
         if (null == inSubscription) {
+            in.start();
+
             inSubscription = in.defaultReceive().subscribe(new Action1<Message>() {
                 @Override
                 public void call(Message message) {
@@ -140,9 +133,10 @@ public final class Proxy implements Observer<NextopSession> {
         if (null != inSubscription) {
             inSubscription.unsubscribe();
             inSubscription = null;
+
+            in.stop();
         }
     }
-
 
 
     /////// PROXY PIPELINE ///////
@@ -173,6 +167,10 @@ public final class Proxy implements Observer<NextopSession> {
         });
     }
     void proxyForward(final Message request) {
+        // FIXME(INFLIGHT) same module is needed in the client, for normal and layer (image decode/encode, resize) loads
+        // FIXME need an in flight manager here. Attach to an in-flight request if in-flight
+        // FIXME receive the processed results of the in-flight request
+
         out.send(request);
         // FIXME track this subscription, attach to the request
         Subscription s = out.receive(request.inboxRoute()).subscribe(new Observer<Message>() {
@@ -191,8 +189,7 @@ public final class Proxy implements Observer<NextopSession> {
 
             @Override
             public void onCompleted() {
-                replayResponses.doOnCompleted(() -> {
-                    // proxy complete when all requests are done
+                replayResponses.observeOn(scheduler).doOnCompleted(() -> {
                     proxyCompleteToSender(request);
                 }).subscribe(new Observer<Message>() {
                     // add to cache
@@ -258,6 +255,7 @@ public final class Proxy implements Observer<NextopSession> {
 
     void proxyNextToSender(Message request, Message response) {
         assert response.route.equals(request.inboxRoute());
+
         in.send(response);
     }
     void proxyCompleteToSender(Message request) {
@@ -376,27 +374,27 @@ public final class Proxy implements Observer<NextopSession> {
             }
 
             for (int i = 1; i < n; ++i) {
-                if (layers[i].isScale()) {
-                    workExecutor.execute(new ScaleWorker(i, memImage));
+                if (layers[i].isTransform()) {
+                    workExecutor.execute(new ImageTransformWorker(i, memImage));
                 } else {
                     emit(i, rawResponse);
                 }
             }
 
             // run the first inline
-            if (layers[0].isScale()) {
-                new ScaleWorker(0, memImage).run();
+            if (layers[0].isTransform()) {
+                new ImageTransformWorker(0, memImage).run();
             } else {
                 emit(0, rawResponse);
             }
         }
 
 
-        final class ScaleWorker implements Runnable {
+        final class ImageTransformWorker implements Runnable {
             int layerIndex;
             BufferedImage memImage;
 
-            ScaleWorker(int layerIndex, BufferedImage memImage) {
+            ImageTransformWorker(int layerIndex, BufferedImage memImage) {
                 this.layerIndex = layerIndex;
                 this.memImage = memImage;
             }
@@ -427,22 +425,24 @@ public final class Proxy implements Observer<NextopSession> {
 
                 BufferedImage scaledMemImage = scale(memImage, sw, sh, hints);
 
-                NoCopyByteArrayOutputStream baos = new NoCopyByteArrayOutputStream(128 * 1024);
+
+                // FIXME(perf test) borrow the initial byte buffer from a shared pool
+                NoCopyByteArrayOutputStream baos = new NoCopyByteArrayOutputStream(8 * 1024);
                 try {
-                    MemoryCacheImageOutputStream ios = new MemoryCacheImageOutputStream(baos);
-                    try {
-                        ImageIO.write(scaledMemImage, layer.format.toString().toLowerCase(), ios);
-                    } finally {
-                        ios.close();
-                    }
+                    encode(scaledMemImage, baos, layer);
                 } catch (IOException e) {
-                    // FIXME this should not happen
                     error(e);
                     return;
                 }
+                // TODO
+                // scaledMemImage.dispose();
 
+                // FIXME(perf test) if using a shared pool, copy here
+                byte[] buffer = baos.getBytes();
                 EncodedImage scaledImage = EncodedImage.create(layer.format, EncodedImage.DEFAULT_ORIENTATION, sw, sh,
-                        baos.getBytes(), baos.getOffset(), baos.getLength());
+                        buffer, baos.getOffset(), baos.getLength());
+                // FIXME(perf test) return the byte buffer to a shared pool
+
 
                 Message.Builder builder = rawResponse.toBuilder()
                         .setRoute(request.inboxRoute())
@@ -469,5 +469,36 @@ public final class Proxy implements Observer<NextopSession> {
             g2d.drawImage(bi, 0, 0, sw, sh, null);
         g2d.dispose();
         return sbi;
+    }
+
+    static void encode(BufferedImage bi, OutputStream os, Message.LayerInfo layer) throws IOException {
+        MemoryCacheImageOutputStream imageOs = new MemoryCacheImageOutputStream(os);
+        try {
+            _encode(bi, imageOs, layer);
+        } finally {
+            imageOs.close();
+        }
+    }
+
+    private static void _encode(BufferedImage bi, ImageOutputStream os, Message.LayerInfo layer) throws IOException {
+        ImageWriter imageWriter = ImageIO.getImageWritersByFormatName(layer.format.toString().toLowerCase()).next();
+        try {
+            ImageWriteParam writeParam = imageWriter.getDefaultWriteParam();
+            writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            // FIXME values
+            switch (layer.quality) {
+                case HIGH:
+                    writeParam.setCompressionQuality(0.9f);
+                    break;
+                case LOW:
+                    writeParam.setCompressionQuality(0.3f);
+                    break;
+            }
+
+            imageWriter.setOutput(os);
+            imageWriter.write(null, new IIOImage(bi, null, null), writeParam);
+        } finally {
+            imageWriter.dispose();
+        }
     }
 }

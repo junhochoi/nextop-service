@@ -1,8 +1,15 @@
 package io.nextop.server;
 
 import io.nextop.Id;
+import io.nextop.client.MessageContext;
+import io.nextop.client.MessageContexts;
+import io.nextop.client.MessageControlState;
+import io.nextop.client.node.Head;
+import io.nextop.client.node.http.HttpNode;
+import io.nextop.rx.MoreSchedulers;
 import rx.Observable;
 import rx.Observer;
+import rx.Scheduler;
 import rx.internal.util.SubscriptionList;
 
 import javax.annotation.Nullable;
@@ -18,6 +25,9 @@ public class ProxyManager implements Observer<NextopSession> {
     final Executor workExecutor;
     final Cache cache;
 
+    final Scheduler scheduler;
+    final Head out;
+
 
     final Object proxyMutex = new Object();
     // client id -> proxy state
@@ -28,6 +38,31 @@ public class ProxyManager implements Observer<NextopSession> {
     public ProxyManager(Executor workExecutor, Cache cache) {
         this.workExecutor = workExecutor;
         this.cache = cache;
+
+        scheduler = MoreSchedulers.serial(workExecutor);
+        out = createOutHead();
+
+        out.init(null);
+    }
+    private Head createOutHead() {
+        MessageContext context = MessageContexts.create(workExecutor);
+        MessageControlState mcs = new MessageControlState(context);
+
+        // FIXME config
+        HttpNode.Config outConfig = new HttpNode.Config("Nextop", 8);
+        HttpNode outHttp = new HttpNode(outConfig);
+
+        return Head.create(context, mcs, outHttp, scheduler);
+    }
+
+
+    public void start() {
+        out.start();
+    }
+
+    public void stop() {
+        out.stop();
+        // FIXME stop all proxies
     }
 
 
@@ -37,11 +72,10 @@ public class ProxyManager implements Observer<NextopSession> {
         synchronized (proxyMutex) {
             proxyState = proxyStates.get(session.clientId);
             if (null == proxyState) {
-                proxyState = new ProxyState(new Proxy(session.clientId, workExecutor, cache),
-                        session);
-            } else {
-                proxyState.mostRecentSession = session;
-            }
+                Proxy proxy = new Proxy(scheduler, out, session.clientId, workExecutor, cache);
+                proxy.start();
+                proxyState = new ProxyState(proxy);
+            } // TODO else update stats
         }
         proxyState.proxy.onNext(session);
     }
@@ -59,11 +93,10 @@ public class ProxyManager implements Observer<NextopSession> {
 
     private static final class ProxyState {
         final Proxy proxy;
-        NextopSession mostRecentSession;
+        // FIXME stats for vacuum
 
-        ProxyState(Proxy proxy, NextopSession mostRecentSession) {
+        ProxyState(Proxy proxy) {
             this.proxy = proxy;
-            this.mostRecentSession = mostRecentSession;
         }
     }
 }
