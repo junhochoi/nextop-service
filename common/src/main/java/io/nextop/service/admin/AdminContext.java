@@ -2,7 +2,7 @@ package io.nextop.service.admin;
 
 import io.nextop.ApiComponent;
 import io.nextop.db.DataSourceProvider;
-import io.nextop.service.log.ServiceLog;
+import io.nextop.log.ServiceLog;
 import rx.Scheduler;
 
 import javax.annotation.Nullable;

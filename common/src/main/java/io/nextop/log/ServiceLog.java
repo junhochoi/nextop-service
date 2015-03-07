@@ -1,10 +1,10 @@
-package io.nextop.service.log;
+package io.nextop.log;
 
 import io.nextop.ApiComponent;
 import io.nextop.ApiContainer;
 import rx.functions.Func0;
 
-import java.util.concurrent.Callable;
+import java.lang.*;import java.lang.Exception;import java.lang.Object;import java.lang.String;import java.lang.System;import java.lang.Throwable;import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -101,7 +101,7 @@ public final class ServiceLog extends ApiComponent.Base {
 
     public void message(Level level, String key, String messageFormat, Object ... args) {
         // FIXME
-        logger.log(level, String.format(keyFormat + messageFormat, concat(of(key), of(args)).toArray()));
+        logger.log(level, String.format(keyFormat + messageFormat, Stream.concat(Stream.of(key), Stream.of(args)).toArray()));
     }
 
     public void trace(String key, String messageFormat, Object ... args) {
@@ -111,12 +111,12 @@ public final class ServiceLog extends ApiComponent.Base {
     public void trace(Level level, String key, String messageFormat, Object ... args) {
         // FIXME
         final class Trace extends Exception {}
-        logger.log(level, String.format(keyFormat + messageFormat, concat(of(key), of(args)).toArray()),
+        logger.log(level, String.format(keyFormat + messageFormat, Stream.concat(Stream.of(key), Stream.of(args)).toArray()),
                 new Trace());
     }
 
 
-    public void handled(String key, Throwable t) {
+    public void handled(String key, java.lang.Throwable t) {
         handled(handledLevel, key, t);
     }
 
@@ -131,7 +131,7 @@ public final class ServiceLog extends ApiComponent.Base {
 
     public void handled(Level level, String key, Throwable t, String messageFormat, Object ... args) {
         // FIXME
-        logger.log(level, String.format(keyFormat + messageFormat, concat(of(key), of(args)).toArray()),
+        logger.log(level, String.format(keyFormat + messageFormat, Stream.concat(Stream.of(key), Stream.of(args)).toArray()),
                 t);
     }
 
@@ -151,7 +151,7 @@ public final class ServiceLog extends ApiComponent.Base {
 
     public void unhandled(Level level, String key, Throwable t, String messageFormat, Object ... args) {
         // FIXME
-        logger.log(level, String.format(keyFormat + messageFormat, concat(of(key), of(args)).toArray()),
+        logger.log(level, String.format(keyFormat + messageFormat, Stream.concat(Stream.of(key), Stream.of(args)).toArray()),
                 t);
     }
 }

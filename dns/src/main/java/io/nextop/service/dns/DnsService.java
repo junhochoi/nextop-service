@@ -19,7 +19,7 @@ import io.nextop.rx.MoreRxOperations;
 import io.nextop.service.Permission;
 import io.nextop.service.admin.AdminContext;
 import io.nextop.service.admin.AdminModel;
-import io.nextop.service.log.ServiceLog;
+import io.nextop.log.ServiceLog;
 import io.nextop.service.m.BadAuthority;
 import io.nextop.service.m.Overlord;
 import io.nextop.service.schema.SchemaController;
