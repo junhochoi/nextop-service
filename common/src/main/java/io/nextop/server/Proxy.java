@@ -6,6 +6,7 @@ import io.nextop.client.MessageContexts;
 import io.nextop.client.MessageControlState;
 import io.nextop.client.node.Head;
 import io.nextop.client.node.nextop.NextopNode;
+import io.nextop.log.LogEntry;
 import io.nextop.log.NL;
 import io.nextop.util.NoCopyByteArrayOutputStream;
 import rx.Observable;
@@ -153,9 +154,23 @@ public final class Proxy implements Observer<NextopSession> {
         NL.nl.message("proxy.request", "Start proxy for %s", request);
         NL.nl.count("proxy.request");
 
-        // FIXME
+        if (Message.isLocal(request.route)) {
+            // session control
+            if (Message.logRoute().equals(request.route)) {
+                try {
+                    LogEntry entry = LogEntry.fromWireValue(request.getContent());
+                    entry.writeTo(NL.nl);
+                } catch (Throwable t) {
+                    NL.nl.unhandled("proxy.request.control.log", t);
+                }
+            } else {
+                NL.nl.message("proxy.request.control", "Unknown local route %s", request.route);
+            }
+        } else {
+            // FIXME
 //        proxyProbeCache(request);
-        proxyForward(request);
+            proxyForward(request);
+        }
     }
 
     void proxyProbeCache(final Message request) {
