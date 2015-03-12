@@ -6,6 +6,7 @@ import io.nextop.client.MessageContexts;
 import io.nextop.client.MessageControlState;
 import io.nextop.client.node.Head;
 import io.nextop.client.node.nextop.NextopNode;
+import io.nextop.log.NL;
 import io.nextop.util.NoCopyByteArrayOutputStream;
 import rx.Observable;
 import rx.Observer;
@@ -118,6 +119,7 @@ public final class Proxy implements Observer<NextopSession> {
 
     public void start() {
         if (null == inSubscription) {
+            NL.nl.count("proxy.start");
             in.start();
 
             inSubscription = in.defaultReceive().subscribe(new Action1<Message>() {
@@ -136,6 +138,7 @@ public final class Proxy implements Observer<NextopSession> {
 
     public void stop() {
         if (null != inSubscription) {
+            NL.nl.count("proxy.stop");
             inSubscription.unsubscribe();
             inSubscription = null;
 
@@ -147,7 +150,8 @@ public final class Proxy implements Observer<NextopSession> {
     /////// PROXY PIPELINE ///////
 
     void proxy(Message request) {
-        System.out.printf("Start proxy for %s\n", request);
+        NL.nl.message("proxy.request", "Start proxy for %s", request);
+        NL.nl.count("proxy.request");
 
         // FIXME
 //        proxyProbeCache(request);
@@ -160,19 +164,19 @@ public final class Proxy implements Observer<NextopSession> {
             @Override
             public void onNext(final Message response) {
                 // send back
-                System.out.printf("Cache hit for %s -> %s\n", request, response);
+                NL.nl.message("proxy.request", "Cache hit for %s -> %s", request, response);
                 proxyNextToSender(request, response);
             }
 
             @Override
             public void onCompleted() {
-                System.out.printf("Cache complete for %s\n", request);
+                NL.nl.message("proxy.request", "Cache complete for %s", request);
                 proxyCompleteToSender(request);
             }
 
             @Override
             public void onError(Throwable e) {
-                System.out.printf("Cache miss for %s\n", request);
+                NL.nl.message("proxy.request", "Cache miss for %s", request);
                 // miss
                 proxyForward(request);
             }
@@ -183,7 +187,7 @@ public final class Proxy implements Observer<NextopSession> {
         // FIXME need an in flight manager here. Attach to an in-flight request if in-flight
         // FIXME receive the processed results of the in-flight request
 
-        System.out.printf("Forward %s\n", request);
+        NL.nl.message("proxy.request.forward", "Forward %s\n", request);
 
         out.send(request);
         // FIXME track this subscription, attach to the request
@@ -292,7 +296,7 @@ public final class Proxy implements Observer<NextopSession> {
     void proxyProcessRawResponse(Message request, Message rawResponse, Observer<Message> responseCallback) {
         // process the raw response differently depending on type type
 
-        System.out.printf("Process raw response for %s -> %s\n", request, rawResponse);
+        NL.nl.message("proxy.request.forward.process", "Process raw response for %s -> %s", request, rawResponse);
 
         @Nullable WireValue contentValue = rawResponse.getContent();
         if (null == contentValue) {
@@ -323,7 +327,7 @@ public final class Proxy implements Observer<NextopSession> {
 
 
     void proxyNextToSender(Message request, Message response) {
-        System.out.printf("Next %s -> %s\n", request, response);
+        NL.nl.message("proxy.request.next", "Next %s -> %s", request, response);
 
 //        if (!request.inboxRoute().equals(response.route)) {
 //            response = response.toBuilder().setRoute(request.inboxRoute()).build();
@@ -331,12 +335,12 @@ public final class Proxy implements Observer<NextopSession> {
         in.send(response);
     }
     void proxyCompleteToSender(Message request) {
-        System.out.printf("Complete %s\n", request);
+        NL.nl.message("proxy.request.complete", "Complete %s", request);
         in.complete(Message.newBuilder().setRoute(request.inboxRoute()).build());
 
     }
     void proxyErrorToSender(Message request) {
-        System.out.printf("Error %s\n", request);
+        NL.nl.message("proxy.request.error", "Error %s", request);
         in.error(Message.newBuilder().setRoute(request.inboxRoute()).build());
     }
 

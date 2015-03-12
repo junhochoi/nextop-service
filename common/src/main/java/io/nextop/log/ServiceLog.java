@@ -1,16 +1,15 @@
 package io.nextop.log;
 
 import io.nextop.ApiComponent;
-import io.nextop.ApiContainer;
 import rx.functions.Func0;
 
-import java.lang.*;import java.lang.Exception;import java.lang.Object;import java.lang.String;import java.lang.System;import java.lang.Throwable;import java.util.concurrent.Callable;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
-import static java.util.stream.Stream.*;
-
+// FIXME replace with NL
 public final class ServiceLog extends ApiComponent.Base {
     // FIXME config for remote logging
 
