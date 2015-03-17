@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 public class ProxyManagerTest extends TestCase {
 
     // tests the proxy manager with a local connection
-    public void testProxy() throws Exception {
+    public void testProxy() throws Throwable {
         Scheduler testScheduler = MoreSchedulers.serial();
 
         // run the test on the correct scheduler
@@ -85,6 +85,7 @@ public class ProxyManagerTest extends TestCase {
 
 
 
+            // FIXME test complete
             Subscription a = head.defaultReceive().subscribe(new Action1<Message>() {
                 @Override
                 public void call(Message message) {
@@ -109,7 +110,7 @@ public class ProxyManagerTest extends TestCase {
     }
 
 
-    public void testImageProxy() throws Exception {
+    public void testImageProxy() throws Throwable {
         Scheduler testScheduler = MoreSchedulers.serial();
 
         // run the test on the correct scheduler

@@ -6,7 +6,8 @@ class Struct:
 	def __init__(self, **kwds):
 		self.__dict__.update(kwds)
 
-hosts = {'dev': '54.149.233.13'}
+# FIXME remove these IPs and use DNS to find the hyperlord
+hosts = {'dev': '54.149.233.13', 'prod': '52.11.173.111'}
 users = {}
 
 def remote(host, cmd):
